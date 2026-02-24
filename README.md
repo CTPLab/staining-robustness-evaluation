@@ -27,8 +27,8 @@ This repository contains code and examples for controlled staining simulations, 
 	- `models/CTRANSPATH/` → put `ctranspath.pth`
 
 Model download links:
-- NIEHEUS2023: [HuggingFace](https://huggingface.co/datasets/CTPLab-DBE-UniBas/staining-robustness-evaluation/tree/main/MSI_classification_models/NIEHEUS2023)
-- WAGNER2023: [HuggingFace](https://huggingface.co/datasets/CTPLab-DBE-UniBas/staining-robustness-evaluation/tree/main/MSI_classification_models/WAGNER2023)
+- NIEHEUS2023: [HuggingFace](https://huggingface.co/datasets/CTPLab-DBE-UniBas/staining-robustness-evaluation/tree/main/MSI_classification_models/NIEHEUS2023), [Original Repo](https://github.com/KatherLab/crc-models-2022/tree/main/Quasar_models/Wang%2BattMIL/isMSIH), [Paper](https://www.sciencedirect.com/science/article/pii/S2666379123000861?via%3Dihub)
+- WAGNER2023: [HuggingFace](https://huggingface.co/datasets/CTPLab-DBE-UniBas/staining-robustness-evaluation/tree/main/MSI_classification_models/WAGNER2023), [Original Repo](https://github.com/peng-lab/HistoBistro/tree/main/CancerCellCRCTransformer/trained_models), [Paper](https://www.sciencedirect.com/science/article/pii/S1535610823002787?via%3Dihub)
 - UNI2-h: [HuggingFace](https://huggingface.co/MahmoodLab/UNI2-h)
 - HOptimus1: [HuggingFace](https://huggingface.co/bioptimus/H-optimus-1)
 - Virchow2: [HuggingFace](https://huggingface.co/paige-ai/Virchow2)
