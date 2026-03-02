@@ -191,7 +191,8 @@ if __name__ == "__main__":
         type=str,
         default="../plism-wsi_stain_references/stain_vectors",
     )
-    parser.add_argument("--features_dir", type=str, default="None")
+    parser.add_argument("--um_size", type=int, default=224)
+    parser.add_argument("--px_size", type=int, default=224)
     parser.add_argument("--gpu_id", type=int, default=0)
     parser.add_argument("--batch_size", type=int, default=1000)
     parser.add_argument(
@@ -214,12 +215,7 @@ if __name__ == "__main__":
     min_height, min_width = 1000, 1000  # for visualization
     args = parser.parse_args()
     print("\n".join(f"{k}: {v}" for k, v in vars(args).items()))
-
-    if args.features_dir != "None":
-        um_size, px_size = map(int, re.findall(r"(?:\d+)(?=um)|(?:\d+)(?=px)", Path(args.features_dir).stem))
-    else:
-        um_size, px_size = 224, 224  # Extract tiles at 1 um/px resolution (224 X 224 px and 224 x 224 um)
-
+    um_size, px_size = args.um_size, args.px_size
     foundation_models = args.foundation_models
     target_stain_name = None if args.target_stain_name == "None" else args.target_stain_name
     target_intensity = None if args.target_intensity == "None" else args.target_intensity
@@ -315,24 +311,20 @@ if __name__ == "__main__":
                     f"Could not find the {openslide.PROPERTY_NAME_MPP_X} in the slide {slide_id}, all keys: {wsi.properties.keys()}"
                 )
 
-            if Path(f"{args.features_dir}/{slide_id}.npz").exists():
-                coords = np.load(f"{args.features_dir}/{slide_id}.npz")["coords"]
-            else:
-                print(f"Pre-extracted coords {args.features_dir}/{slide_id}.npz does not exist, preprocess slide")
-                mask = tissue_detector.detect_tissue(wsi, slide_id)
-                coords = create_tissue_tiles(
-                    wsi,
-                    mask,
-                    tile_size_microns=um_size,
-                    slide_id=slide_id,
-                    offsets_micron=0,
-                )
-                coords = np.array([c.bounds for c in coords])
-                np.savez(f"{args.features_dir}/{slide_id}.npz", coords=coords)
-
+            print("Detect tissue in slide")
+            mask = tissue_detector.detect_tissue(wsi, slide_id)
+            print(f"Tile slide into {um_size}um X {um_size}um tiles")
+            coords = create_tissue_tiles(
+                wsi,
+                mask,
+                tile_size_microns=um_size,
+                slide_id=slide_id,
+                offsets_micron=0,
+            )
+            coords = np.array([c.bounds for c in coords])
             coord_tile_size_px = int(coords[0, 2] - coords[0, 0])
             print(
-                f"Loaded coords {coords.shape} tile size={coord_tile_size_px}px, {coord_tile_size_px*orig_mpp:.1f}um, path: {args.features_dir}/{slide_id}.npz"
+                f"Generated tile coords {coords.shape} tile size={coord_tile_size_px}px, {coord_tile_size_px*orig_mpp:.1f}um"
             )
 
             # Output visualization
