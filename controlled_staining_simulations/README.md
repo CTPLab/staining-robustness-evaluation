@@ -1,8 +1,8 @@
 # Infere CPath models under simulated reference staining conditions
 
 This subfolder contains scripts to:
-1. **Reproduce the experiments from the paper (MSI in CRC, SurGen cohort).**
-2. **Infere (your) CPath models on your own dataset and selected reference conditions.**
+1. **Infere (your) CPath models on your own dataset and selected reference conditions.**
+2. **Reproduce the experiments from the paper (MSI in CRC, SurGen cohort).**
 
 ---
 ## Folder Structure
@@ -15,7 +15,7 @@ This subfolder contains scripts to:
 
 ---
 
-## Applying the Protocol to Your Own Dataset
+## Infere CPath models on your own dataset and selected reference conditions.
 
 This assumes you already selected reference staining conditions and extracted H&E stain vectors and intensities for your own datasets. If this is not the case please check [stain_vector_concentration_extraction](stain_vector_concentration_extraction/) and [README](./README.md).
 
