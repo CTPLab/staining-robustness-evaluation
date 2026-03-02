@@ -1,19 +1,14 @@
 # Infere CPath models under simulated reference staining conditions
 
-This repository supports two main use cases:
-
+This subfolder contains scripts to:
 1. **Reproduce the experiments from the paper (MSI in CRC, SurGen cohort).**
-2. **Apply the protocol to your own dataset and CPath models.**
-
-The workflow follows the three protocol steps described in the manuscript.
+2. **Infere (your) CPath models on your own dataset and selected reference conditions.**
 
 ---
-## Repository Structure
+## Folder Structure
 
 | Protocol Step | Repository Component |
 |---------------|---------------------|
-| Reference stain selection | PLISM library (download from HuggingFace) |
-| Test cohort stain characterization | `stain_vector_concentration_extraction/` |
 | Controlled simulation + feature extraction | `extract_features.py` |
 | Model inference | `infere_simulated_models.py`, `infere_public_models.py` |
 | Training simulated ABMIL models | `train_abmil.py` |
