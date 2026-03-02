@@ -1,42 +1,199 @@
-
 # A protocol for evaluating robustness to H&E staining variation in computational pathology models
 
-This repository contains code and examples for controlled staining simulations, stain unmixing, feature extraction, and model inference for evaluating computational pathology models under H&E staining variation.
+This repository implements a structured protocol for evaluating the robustness of computational pathology (CPath) models to hematoxylin and eosin (H&E) staining variation, as described in the paper.
 
-## Repository Layout
-- **controlled_staining_simulations**: Notebooks and scripts to run staining simulations, train simulated models, and evaluate results. See [controlled_staining_simulations](controlled_staining_simulations/).
-- **models**: Checkpoints and model wrappers (place downloaded model files here). See [models](models/).
-- **stain_vector_concentration_extraction**: Tools and scripts to unmix stain vectors and extract concentrations from tiles/WSIs. See [stain_vector_concentration_extraction](stain_vector_concentration_extraction/).
-- **utils**: Utility scripts for tile handling, GPU monitoring, model loading, and training helpers. See [utils](utils/).
-- **SURGEN.csv, tcga_coadread.csv**: Datasets / metadata used in this project.
+<img width="3305" height="1367" alt="Overview Stain Variation (2)" src="https://github.com/user-attachments/assets/27c81cc9-bb72-4fb5-8f7c-1249f0832bc3" />
+
+It enables:
+- Definition of realistic reference staining conditions  
+- Extraction of slide-level staining properties  
+- Controlled simulation of staining variation during model inference  
+- Quantification of robustness via performance variability  
+
+The protocol is demonstrated using MSI classification in colorectal cancer, but is designed to be reusable for other tasks and datasets.
+
+---
+
+## Repository Structure
+
+The folder layout mirrors the protocol steps 1-3 (see Figure above).
+
+### [stain_vector_concentration_extraction](stain_vector_concentration_extraction/)
+Implements Step 1 and Step 2.
+
+Estimates both H&E stain vectors and intensities by Macenko-based unmixing on the:
+- Tile-level for PLISM dataset [More information on PLISM](https://p024eb.github.io/)
+- Slide-level for SurGen or any other WSI-based dataset
+
+Use this if you want to:
+- Build your own stain reference library  
+- Extract stain statistics from a new dataset  
+
+### [controlled_staining_simulations](controlled_staining_simulations/)
+Implements Step 3, as well as the ABMIL-based training of the MSI classification models.
+
+Provides code for:
+- ABMIL-based training of MSI models
+- Feature extraction under simulated staining conditions
+- Model inference of public and self-trained models on features from simulated staining conditions
+- Evaluation notebooks
+
+Use this if you want to:
+- Replicate our experiments (ABMIL-based training, feature extraction and inference)
+- Run controlled staining simulations on your own models
+
+### [models](models/)
+Model wrappers and checkpoint storage.
+
+Downloaded model weights must be placed here manually.
+
+### [utils](utils/)
+Shared utilities:
+- Tile handling  
+- GPU monitoring  
+- Model loading  
+- Training helpers  
+
+### Metadata Files
+Used for dataset splits and evaluation in the manuscript.
+- `SURGEN.csv`
+- `tcga_coadread.csv`
+
+---
 
 ## Quick Start
-- Prerequisites: Python 3.8+ and a working PyTorch install (GPU recommended). Install common packages used across scripts: `pip install torch torchvision numpy scikit-image openslide-python tifffile pandas scikit-learn` or create a conda env and install equivalents.
-- Notebooks: For end-to-end examples and recommended workflows, open the notebooks in [controlled_staining_simulations](controlled_staining_simulations/).
-- Scripts: Example command (run from this repository root):
 
-	python controlled_staining_simulations/extract_features.py
+### 1. Setup
 
-	Most scripts accept arguments; use `--help` on each script to see usage.
+- Python ≥ 3.8  
+- PyTorch (GPU recommended)
 
-## Models (download and placement)
-- This repo expects model checkpoints to be downloaded separately. Create a folder under `models/` for each model and place the checkpoint files there.
-- Example expected placements:
-	- `models/NIEHEUS2023/` → put `export-0.pth`, `export-1.pth`, ...
-	- `models/WAGNER2023/` → put `MSI_high_CRC_model.pth`
-	- `models/CTRANSPATH/` → put `ctranspath.pth`
+Install core dependencies:
 
-Model download links:
-- NIEHEUS2023: [HuggingFace](https://huggingface.co/datasets/CTPLab-DBE-UniBas/staining-robustness-evaluation/tree/main/MSI_classification_models/NIEHEUS2023), [Original Repo](https://github.com/KatherLab/crc-models-2022/tree/main/Quasar_models/Wang%2BattMIL/isMSIH), [Paper](https://www.sciencedirect.com/science/article/pii/S2666379123000861?via%3Dihub)
-- WAGNER2023: [HuggingFace](https://huggingface.co/datasets/CTPLab-DBE-UniBas/staining-robustness-evaluation/tree/main/MSI_classification_models/WAGNER2023), [Original Repo](https://github.com/peng-lab/HistoBistro/tree/main/CancerCellCRCTransformer/trained_models), [Paper](https://www.sciencedirect.com/science/article/pii/S1535610823002787?via%3Dihub)
+```bash
+pip install torch torchvision numpy scikit-image openslide-python tifffile pandas scikit-learn
+```
+
+### 2. Typical Workflows
+
+#### A. Apply the protocol to your own dataset
+
+1. **Select reference staining conditions**
+	- Option 1: Select references from our PLISM-based H&E stain vectors and intensity library [Hugging Face Repository](https://huggingface.co/datasets/CTPLab-DBE-UniBas/staining-robustness-evaluation/tree/main)
+	- Option 2: Create your own references based on your own WSIs (Script: [unmix_wsi_v1.py](stain_vector_concentration_extraction/unmix_wsi_v1.py)) or tiles (Script: [unmix_tiles.py](stain_vector_concentration_extraction/unmix_tiles.py)).
+
+2. **Characterize test set staining properties**
+
+Configure and run [unmix_wsi_v1.py](stain_vector_concentration_extraction/unmix_wsi_v1.py), check the unmixing logs to verify suitable tiles are selected, if the selected tiles are problematic, please adjust the threshold parameters in [config.py](stain_vector_concentration_extraction/config.py)
+
+```bash
+python stain_vector_concentration_extraction/unmix_wsi_v1.py
+```
+For detailed steps check: [stain_vector_concentration_extraction](stain_vector_concentration_extraction/)
+
+3. **Infere CPath models under simulated reference staining conditions**
+
+First, extract the features (utilizing your selected foundation model encoder) under the simulated staining condition, which is applied for each tile before feature extraction.
+```bash
+python controlled_staining_simulations/extract_features.py --help
+```
+Second, infer your trained aggregator model on the extracted features: 
+```bash
+python controlled_staining_simulations/infere_public_model.py --help
+```
+For detailed steps check [controlled_staining_simulations](controlled_staining_simulations/).
+
+4. **Evaluate robustness**
+You can build on our Jupyter Notebook for result evaluation, or implement your own custom logic for evaluating the results:
+```
+controlled_staining_simulations/evaluate_results.ipynb
+```
+
+---
+
+#### B. Reproduce experiments from the paper
+
+1. Download pretrained models (see section below) and place checkpoints under `models/`
+2. Run feature extraction
+3. Run inference scripts
+4. Use the evaluation notebook to reproduce AUC and robustness metrics
+
+For detailed steps check [controlled_staining_simulations](controlled_staining_simulations/).
+
+---
+
+## Models: Download and Placement
+
+Create subfolders under `models/` and place checkpoints there.
+
+Example structure:
+
+```
+models/NIEHEUS2023/export-0.pth
+models/WAGNER2023/MSI_high_CRC_model.pth
+models/CTRANSPATH/ctranspath.pth
+...
+```
+
+Foundation models:
 - UNI2-h: [HuggingFace](https://huggingface.co/MahmoodLab/UNI2-h)
 - HOptimus1: [HuggingFace](https://huggingface.co/bioptimus/H-optimus-1)
 - Virchow2: [HuggingFace](https://huggingface.co/paige-ai/Virchow2)
 - CTransPath: [GitHub](https://github.com/Xiyue-Wang/TransPath?tab=readme-ov-file)
 - RetCCL: [GitHub](https://github.com/Xiyue-Wang/RetCCL)
 
-## How to run common tasks
-- Unmix stains / extract concentrations: run scripts in [stain_vector_concentration_extraction](stain_vector_concentration_extraction/).
-- Extract tile features: use [controlled_staining_simulations/extract_features.py](controlled_staining_simulations/extract_features.py) or the notebook variants.
-- Run inference on simulated or public models: use `controlled_staining_simulations/infere_simulated_models.py` and `controlled_staining_simulations/infere_public_models.py`.
-- Evaluation: see `controlled_staining_simulations/evaluate_results.ipynb` for typical analysis and plotting of results.
+Public MSI models:
+- NIEHEUS2023: [HuggingFace](https://huggingface.co/datasets/CTPLab-DBE-UniBas/staining-robustness-evaluation/tree/main/MSI_classification_models/NIEHEUS2023), [Original Repo](https://github.com/KatherLab/crc-models-2022/tree/main/Quasar_models/Wang%2BattMIL/isMSIH), [Paper](https://www.sciencedirect.com/science/article/pii/S2666379123000861?via%3Dihub)
+- WAGNER2023: [HuggingFace](https://huggingface.co/datasets/CTPLab-DBE-UniBas/staining-robustness-evaluation/tree/main/MSI_classification_models/WAGNER2023), [Original Repo](https://github.com/peng-lab/HistoBistro/tree/main/CancerCellCRCTransformer/trained_models), [Paper](https://www.sciencedirect.com/science/article/pii/S1535610823002787?via%3Dihub)
+
+**Data and pretrained models:** Pretrained models, stain reference libraries, and extracted stain statistics are available on the accompanying [Hugging Face Repository](https://huggingface.co/datasets/CTPLab-DBE-UniBas/staining-robustness-evaluation/tree/main)
+
+---
+
+## Evaluation Metrics
+
+- **Performance:** AUC under the reference staining condition  
+- **Robustness:** Min–max AUC range across all simulated staining conditions  
+
+Bootstrapped confidence intervals (n=1000) are computed in the evaluation notebook.
+
+---
+
+## Reproducibility and Resources
+
+Resources available on Hugging Face:
+
+- Stain reference library (PLISM)
+- Slide-level stain vectors (SurGen)  
+- Trained ABMIL models  
+- Hyperparameter configurations  
+
+👉 Hugging Face: [Hugging Face Repository](https://huggingface.co/datasets/CTPLab-DBE-UniBas/staining-robustness-evaluation/tree/main)
+
+---
+
+## Citation
+
+If you use this repository, please cite:
+
+```
+[Full paper citation here]
+```
+
+## References
+This repository utilizes and builds on:
+
+**Datasets:**
+* PLISM dataset: Ochi, M., Komura, D., Onoyama, T. et al. Registered multi-device/staining histology image dataset for domain-agnostic machine learning models. Sci Data 11, 330 (2024). [Link](https://doi.org/10.1038/s41597-024-03122-5)
+* SurGen dataset: Myles C., Um, I.H., Marshall, C. et al. 1020 H&E-stained whole-slide images with survival and genetic markers. GigaScience, Volume 14 (2025). [Link](https://academic.oup.com/gigascience/article/doi/10.1093/gigascience/giaf086/8277208?login=true)
+
+**Foundation models:**
+- UNI2-h: Chen, R.J., Ding, T., Lu, M.Y., Williamson, D.F.K., et al. Towards a general-purpose foundation model for computational pathology. Nat Med (2024). [Paper](https://doi.org/10.1038/s41591-024-02857-3), [HuggingFace](https://huggingface.co/MahmoodLab/UNI2-h)
+- HOptimus1: [HuggingFace](https://huggingface.co/bioptimus/H-optimus-1)
+- Virchow2: Zimmermann, E., Vorontsov, E., Viret et al. Virchow2: Scaling self-supervised mixed magnification models in pathology (2024). [Paper](arXiv:2408.00738), [HuggingFace](https://huggingface.co/paige-ai/Virchow2)
+- CTransPath: Wang, X., Yang, S., Zhang et. al. Transformer-based unsupervised contrastive learning for histopathological image classification. Medical image analysis, 81, p.102559 (2022). [Paper](https://www.sciencedirect.com/science/article/pii/S1361841522002043), [GitHub](https://github.com/Xiyue-Wang/TransPath?tab=readme-ov-file)
+- RetCCL: Wang, X., Du, Y., Yang, S. et. al. RetCCL: Clustering-guided contrastive learning for whole-slide image retrieval. Medical image analysis, 83, 102645 (2023). [Paper](https://www.sciencedirect.com/science/article/pii/S1361841522002730), [GitHub](https://github.com/Xiyue-Wang/RetCCL)
+
+**Public MSI models:**
+- Niehues, J. M., Quirke, P., West, N. P., et. al. Generalizable biomarker prediction from cancer pathology slides with self-supervised deep learning: A retrospective multi-centric study. Cell reports medicine, 4(4) (2023). [Paper](https://www.sciencedirect.com/science/article/pii/S2666379123000861?via%3Dihub), [HuggingFace](https://huggingface.co/datasets/CTPLab-DBE-UniBas/staining-robustness-evaluation/tree/main/MSI_classification_models/NIEHEUS2023), [Original Repo](https://github.com/KatherLab/crc-models-2022/tree/main/Quasar_models/Wang%2BattMIL/isMSIH), 
+- Wagner, S. J., Reisenbüchler, D., West, N. P. et al. Transformer-based biomarker prediction from colorectal cancer histology: A large-scale multicentric study. Cancer cell, 41(9), 1650-1661 (2023). [HuggingFace](https://huggingface.co/datasets/CTPLab-DBE-UniBas/staining-robustness-evaluation/tree/main/MSI_classification_models/WAGNER2023), [Original Repo](https://github.com/peng-lab/HistoBistro/tree/main/CancerCellCRCTransformer/trained_models), [Paper](https://www.sciencedirect.com/science/article/pii/S1535610823002787?via%3Dihub)
