@@ -14,12 +14,25 @@ The protocol is demonstrated using MSI classification in colorectal cancer, but 
 
 ---
 
-## Repository Structure
+## Overview: How This Project Is Structured
 
-The folder layout mirrors the protocol steps 1-3 (see Figure above).
+The project is split into this code repository and a HuggingFace repository [HuggingFace](https://huggingface.co/datasets/CTPLab-DBE-UniBas/staining-robustness-evaluation) providing the precomputed results.
+You can reproduce everything or selectively reuse precomputed artifacts:
+
+| Work Package | Code (This Repo) | Precomputed Results (HuggingFace) |
+|---------------|---------------------|---------------------| 
+| PLISM stain characterization | `stain_vector_concentration_extraction/compute_stats.py`, `stain_vector_concentration_extraction/unmix_tiles.py` | `plism-wsi_stain_references` |
+| SurGen stain characterization | `stain_vector_concentration_extraction/unmix_wsi_v1.py` | `surgen_stain_properties` |
+| Sample ABMIL train hyperparameters | `controlled_staining_simulations/simulation_settings.ipynb` | `MSI_classification_models/fixed_splits_n=300`, `MSI_classification_models/fixed_simulation_hps_n=300.csv` |
+| ABMIL training (n=300 models) | `controlled_staining_simulations/unmix_wsi_v1.py` | `MSI_classification_models/trained_models` |
+| Extract features under simulated reference staining conditions | `controlled_staining_simulations/extract_features.py` | Not provided, follow steps in GitHub. |
+| Infer models on extracted features | `controlled_staining_simulations/infere_simulated_models.py`, `controlled_staining_simulations/infere_public_models.py` | `exp_results` |
+| Evaluate results | `controlled_staining_simulations/evaluate_results.ipynb` | See paper for results. |
+
+The layout of this repository mirrors the protocol steps 1-3 (see Figure above).
 
 ### [stain_vector_concentration_extraction](stain_vector_concentration_extraction/)
-Implements Step 1 and Step 2.
+Implements `Step 1: Staining reference selection` and `Step 2: Test set staining characterization`.
 
 Estimates both H&E stain vectors and intensities by Macenko-based unmixing on the:
 - Tile-level for PLISM dataset [More information on PLISM](https://p024eb.github.io/)
@@ -30,7 +43,7 @@ Use this if you want to:
 - Extract stain statistics from a new dataset  
 
 ### [controlled_staining_simulations](controlled_staining_simulations/)
-Implements Step 3, as well as the ABMIL-based training of the MSI classification models.
+Implements `Step 3: Infere CPath model under simulated reference conditions`, as well as the ABMIL-based training of the MSI classification models.
 
 Provides code for:
 - ABMIL-based training of MSI models
@@ -195,5 +208,5 @@ This repository utilizes and builds on:
 - RetCCL: Wang, X., Du, Y., Yang, S. et. al. RetCCL: Clustering-guided contrastive learning for whole-slide image retrieval. Medical image analysis, 83, 102645 (2023). [Paper](https://www.sciencedirect.com/science/article/pii/S1361841522002730), [GitHub](https://github.com/Xiyue-Wang/RetCCL)
 
 **Public MSI models:**
-- Niehues, J. M., Quirke, P., West, N. P., et. al. Generalizable biomarker prediction from cancer pathology slides with self-supervised deep learning: A retrospective multi-centric study. Cell reports medicine, 4(4) (2023). [Paper](https://www.sciencedirect.com/science/article/pii/S2666379123000861?via%3Dihub), [HuggingFace](https://huggingface.co/datasets/CTPLab-DBE-UniBas/staining-robustness-evaluation/tree/main/MSI_classification_models/NIEHEUS2023), [Original Repo](https://github.com/KatherLab/crc-models-2022/tree/main/Quasar_models/Wang%2BattMIL/isMSIH), 
-- Wagner, S. J., Reisenbüchler, D., West, N. P. et al. Transformer-based biomarker prediction from colorectal cancer histology: A large-scale multicentric study. Cancer cell, 41(9), 1650-1661 (2023). [HuggingFace](https://huggingface.co/datasets/CTPLab-DBE-UniBas/staining-robustness-evaluation/tree/main/MSI_classification_models/WAGNER2023), [Original Repo](https://github.com/peng-lab/HistoBistro/tree/main/CancerCellCRCTransformer/trained_models), [Paper](https://www.sciencedirect.com/science/article/pii/S1535610823002787?via%3Dihub)
+- Niehues, J. M., Quirke, P., West, N. P., et. al. Generalizable biomarker prediction from cancer pathology slides with self-supervised deep learning: A retrospective multi-centric study. Cell reports medicine, 4(4) (2023). [Paper](https://www.sciencedirect.com/science/article/pii/S2666379123000861?via%3Dihub), [HuggingFace](https://huggingface.co/datasets/CTPLab-DBE-UniBas/staining-robustness-evaluation/tree/main/MSI_classification_models/NIEHEUS2023), [Original Repo](https://github.com/KatherLab/crc-models-2022/tree/main/Quasar_models/Wang%2BattMIL/isMSIH)
+- Wagner, S. J., Reisenbüchler, D., West, N. P. et al. Transformer-based biomarker prediction from colorectal cancer histology: A large-scale multicentric study. Cancer cell, 41(9), 1650-1661 (2023). [Paper](https://www.sciencedirect.com/science/article/pii/S1535610823002787?via%3Dihub), [HuggingFace](https://huggingface.co/datasets/CTPLab-DBE-UniBas/staining-robustness-evaluation/tree/main/MSI_classification_models/WAGNER2023), [Original Repo](https://github.com/peng-lab/HistoBistro/tree/main/CancerCellCRCTransformer/trained_models)
