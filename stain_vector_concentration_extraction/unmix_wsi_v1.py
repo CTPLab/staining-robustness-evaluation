@@ -268,7 +268,6 @@ if __name__ == "__main__":
 
                 H, E = stainMatrix[:, 0], stainMatrix[:, 1]
                 h_sph, e_sph = to_spherical(H), to_spherical(E)
-                h_sph, e_sph = to_spherical(H), to_spherical(E)
                 if h_sph[1] > e_sph[1] and h_sph[0] > e_sph[0]:
                     png_fp = f"{output_report_dir}/{slide_id}/{slide_id}_xmin={x_min}_ymin={y_min}_xmax={x_max}_ymax={y_max}_analysisReport_ignored.png"
                     npz_fp = f"{output_data_dir}/{slide_id}/{slide_id}_xmin={x_min}_ymin={y_min}_xmax={x_max}_ymax={y_max}_ignored.npz"
