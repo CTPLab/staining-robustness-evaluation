@@ -267,14 +267,14 @@ if __name__ == "__main__":
     print(f"=> Output dir: {output_dir}")
     for fm in foundation_models:
         os.makedirs(f"{output_dir}/{fm}_features_{um_size}um_{px_size}px_fcnn", exist_ok=True)
+    device = torch.device(f"cuda:{args.gpu_id}" if torch.cuda.is_available() else "cpu")
+    assert device.type == "cuda" and device.index == args.gpu_id, f"Device is not cuda:{args.gpu_id}"
     log_csv_path = f"{output_dir}/gpu_logs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
     gpu_logger = GPUStatsLogger(csv_path=log_csv_path, poll_interval=0.1, gpu_ids=[args.gpu_id])
     tissue_detector = TissueDetector(tissue_method="fcnn", device=device)
 
     try:
         gpu_logger.start()
-        device = torch.device(f"cuda:{args.gpu_id}" if torch.cuda.is_available() else "cpu")
-        assert device.type == "cuda" and device.index == args.gpu_id, f"Device is not cuda:{args.gpu_id}"
         encoders, aggregators, means, stds = {}, {}, {}, {}
         for fm in foundation_models:
             means[fm] = torch.tensor(ENCODER_NORMALIZATIONS[fm]["mean"], device=device, dtype=torch.float32).view(
