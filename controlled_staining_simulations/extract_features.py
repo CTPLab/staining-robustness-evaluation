@@ -261,7 +261,7 @@ if __name__ == "__main__":
 
     try:
         gpu_logger.start()
-        encoders, aggregators, means, stds = {}, {}, {}, {}
+        encoders, means, stds = {}, {}, {}
         for fm in foundation_models:
             means[fm] = torch.tensor(ENCODER_NORMALIZATIONS[fm]["mean"], device=device, dtype=torch.float32).view(
                 1, -1, 1, 1
