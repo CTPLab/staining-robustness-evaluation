@@ -95,6 +95,7 @@ def colorfulness_variance_filtered(hsv: np.ndarray) -> float:
 def keep_tile(tile: np.ndarray, thresholds: Dict[str, float], tile_name: str = "") -> bool:
     hsv = rgb2hsv(tile)
     sat, val, h = hsv[..., 1], hsv[..., 2], hsv[..., 0]
+    mask = sat > 0.1
     frac_sat = float(np.mean(sat > 0.2))
     if frac_sat < thresholds["frac_sat"]:
         print(f"Ignore {tile_name}: low saturation ({frac_sat:.2f} < {thresholds['frac_sat']:.2f})")
