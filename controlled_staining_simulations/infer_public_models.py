@@ -16,7 +16,7 @@ import re
 from datetime import datetime
 from glob import glob
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, Tuple
 
 import numpy as np
 import pandas as pd
@@ -26,7 +26,6 @@ from models.wagner2023 import Wagner2023
 from sklearn.metrics import f1_score, precision_score, recall_score, roc_auc_score
 from torch import nn
 from utils.gpu_monitor import GPUStatsLogger
-from utils.load_encoder import INPUT_FEATURE_SIZE
 
 logging.basicConfig(
     level=logging.INFO,

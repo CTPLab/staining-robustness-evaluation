@@ -17,7 +17,7 @@ import re
 from datetime import datetime
 from glob import glob
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, Tuple
 
 import numpy as np
 import pandas as pd
