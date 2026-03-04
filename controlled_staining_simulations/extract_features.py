@@ -66,6 +66,7 @@ def crop_rect_from_slide(
         f = slide.level_downsamples[level]
         w, h = round((maxx - minx) / f), round((maxy - miny) / f)
     else:
+        level = 0
         w, h = int(maxx - minx), int(maxy - miny)
 
     tile = slide.read_region(top_left_coords, level, (w, h))
