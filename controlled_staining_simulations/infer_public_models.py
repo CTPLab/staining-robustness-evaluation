@@ -93,7 +93,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--csv", type=str, required=True, default="../SURGEN.csv")
     parser.add_argument(
+        "--features_dir",
         "--feature_dir",
+        dest="features_dir",
         type=str,
         required=True,
         help="Directory containing extracted features. Generate with extract_features.py",
@@ -107,9 +109,9 @@ if __name__ == "__main__":
     parser.add_argument("--gpu_id", type=int, default=0)
     parser.add_argument("--task", type=str, default="MSI")
 
+    args = parser.parse_args()
     ci = 0.95  # 95% confidence interval for bootstrapping
     model_name = f"agg={Path(args.pretrained_model).stem}"
-    args = parser.parse_args()
     cohort = Path(args.csv).stem
     logging.info("\n".join(f"{k}: {v}" for k, v in vars(args).items()))
     df = pd.read_csv(args.csv)
@@ -130,9 +132,8 @@ if __name__ == "__main__":
     n_classes = 2
     device = torch.device(f"cuda:{args.gpu_id}" if torch.cuda.is_available() else "cpu")
     assert device.type == "cuda" and device.index == args.gpu_id, f"Device is not cuda:{args.gpu_id}"
-    sim_settings = pd.read_csv(args.sim_settings_csv)
     log_csv_path = f"{args.output_dir}/gpu_logs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-    gpu_logger = GPUStatsLogger(csv_path=log_csv_path, poll_interval=0.1, gpu_ids=[0])
+    gpu_logger = GPUStatsLogger(csv_path=log_csv_path, poll_interval=0.1, gpu_ids=[args.gpu_id])
 
     try:
         gpu_logger.start()
