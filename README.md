@@ -24,7 +24,7 @@ You can reproduce everything or selectively reuse precomputed artifacts:
 | PLISM stain characterization | `stain_vector_concentration_extraction/compute_stats.py`, `stain_vector_concentration_extraction/unmix_tiles.py` | `plism-wsi_stain_references` |
 | SurGen stain characterization | `stain_vector_concentration_extraction/unmix_wsi_v1.py` | `surgen_stain_properties` |
 | Sample ABMIL train hyperparameters | `controlled_staining_simulations/simulation_settings.ipynb` | `MSI_classification_models/fixed_splits_n=300`, `MSI_classification_models/fixed_simulation_hps_n=300.csv` |
-| ABMIL training (n=300 models) | `controlled_staining_simulations/unmix_wsi_v1.py` | `MSI_classification_models/trained_models` |
+| ABMIL training (n=300 models) | `controlled_staining_simulations/train_abmil.py` | `MSI_classification_models/trained_models` |
 | Extract features under simulated reference staining conditions | `controlled_staining_simulations/extract_features.py` | Not provided, follow steps in GitHub. |
 | Infer models on extracted features | `controlled_staining_simulations/infer_simulated_models.py`, `controlled_staining_simulations/infer_public_models.py` | `exp_results` |
 | Evaluate results | `controlled_staining_simulations/evaluate_results.ipynb` | See paper for results. |

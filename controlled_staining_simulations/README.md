@@ -28,7 +28,7 @@ python extract_features.py \
     --task ##NAME-OF-YOUR-TASK-COLUMN## \
     --csv  ##PATH/TO/YOUR/DATASET/CSV## \
     --output_dir  ##PATH/TO/YOUR/OUTPUTDIR## \
-    --foundation_models Univ2 \
+    --foundation_models univ2 \
     --stain_dir ##PATH/TO/YOUR/DATASETS/STAIN-PROPS## \
     --ref_stain_dir ##PATH/TO/YOUR/REFERENCE-LIBRARY## \ 
     --um_size 224 \ ## set as desired, currently 224px X 224px at 1 um/px (10x)
@@ -42,7 +42,7 @@ Outputs:
 ```
 features_output/
     intensity=None_stain=None/
-        UNIv2_features_224um_224px_fcnn/
+        univ2_features_224um_224px_fcnn/
             SLIDE_ID.npz
 ```
 
@@ -134,13 +134,13 @@ Four stain conditions:
 
 Eg. for low intensity condition:
 
-Uni2-h, HOptimus1, Virchow2  -> 224px X 224px at 1 um/px (10x): 
+`univ2`, `hoptimus1`, `virchow2` -> 224px X 224px at 1 um/px (10x): 
 ```bash
 python extract_features.py \
     --task MSI \
     --csv SURGEN.csv \
     --output_dir ##PATH/TO/YOUR/OUTPUTDIR## \
-    --foundation_models Univ2,HOptimus1,Virchow2 \
+    --foundation_models univ2,hoptimus1,virchow2 \
     --stain_dir ##PATH-TO-SURGEN-STAINS## \
     --ref_stain_dir ##PATH-TO-PLISM-REFERENCES## \ 
     --um_size 224 \
@@ -158,7 +158,7 @@ python extract_features.py \
     --task MSI \
     --csv SURGEN.csv \
     --output_dir ##PATH/TO/YOUR/OUTPUTDIR## \
-    --foundation_models Univ2,HOptimus1,Virchow2 \
+    --foundation_models univ2,hoptimus1,virchow2 \
     --stain_dir ##PATH/TO/surgen_stain_properties## \
     --ref_stain_dir ##PATH/TO/plism-wsi_stain_references## \ 
     --um_size 256 \
@@ -174,7 +174,7 @@ Outputs:
 ```
 features/
     intensity=None_stain=None/
-        UNIv2_features_224um_224px_fcnn/
+        univ2_features_224um_224px_fcnn/
             SLIDE_ID.npz
 ```
 
@@ -219,7 +219,7 @@ Runs inference for a public model on one staining condition. Please repeat for b
 ```bash
 python controlled_staining_simulations/infer_public_models.py \
   --csv SURGEN.csv \
-  --feature_dir features_output/intensity=None_stain=None \
+  --features_dir features_output/intensity=None_stain=None \
   --pretrained_model models/WAGNER2023/model.pth \
   --output_dir results \
   --gpu_id 0
