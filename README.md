@@ -26,7 +26,7 @@ You can reproduce everything or selectively reuse precomputed artifacts:
 | Sample ABMIL train hyperparameters | `controlled_staining_simulations/simulation_settings.ipynb` | `MSI_classification_models/fixed_splits_n=300`, `MSI_classification_models/fixed_simulation_hps_n=300.csv` |
 | ABMIL training (n=300 models) | `controlled_staining_simulations/unmix_wsi_v1.py` | `MSI_classification_models/trained_models` |
 | Extract features under simulated reference staining conditions | `controlled_staining_simulations/extract_features.py` | Not provided, follow steps in GitHub. |
-| Infer models on extracted features | `controlled_staining_simulations/infere_simulated_models.py`, `controlled_staining_simulations/infere_public_models.py` | `exp_results` |
+| Infer models on extracted features | `controlled_staining_simulations/infer_simulated_models.py`, `controlled_staining_simulations/infer_public_models.py` | `exp_results` |
 | Evaluate results | `controlled_staining_simulations/evaluate_results.ipynb` | See paper for results. |
 
 The layout of this repository mirrors the protocol steps 1-3 (see Figure above).
@@ -43,7 +43,7 @@ Use this if you want to:
 - Extract stain statistics from a new dataset  
 
 ### [controlled_staining_simulations](controlled_staining_simulations/)
-Implements `Step 3: Infere CPath model under simulated reference conditions`, as well as the ABMIL-based training of the MSI classification models.
+Implements `Step 3: Infer CPath model under simulated reference conditions`, as well as the ABMIL-based training of the MSI classification models.
 
 Provides code for:
 - ABMIL-based training of MSI models
@@ -104,7 +104,7 @@ python stain_vector_concentration_extraction/unmix_wsi_v1.py
 ```
 For detailed steps check: [stain_vector_concentration_extraction](stain_vector_concentration_extraction/)
 
-3. **Infere CPath models under simulated reference staining conditions**
+3. **Infer CPath models under simulated reference staining conditions**
 
 First, extract the features (utilizing your selected foundation model encoder) under the simulated staining condition, which is applied for each tile before feature extraction.
 ```bash
@@ -112,7 +112,7 @@ python controlled_staining_simulations/extract_features.py --help
 ```
 Second, infer your trained aggregator model on the extracted features: 
 ```bash
-python controlled_staining_simulations/infere_public_model.py --help
+python controlled_staining_simulations/infer_public_models.py --help
 ```
 For detailed steps check [controlled_staining_simulations](controlled_staining_simulations/).
 

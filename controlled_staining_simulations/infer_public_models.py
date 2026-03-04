@@ -1,5 +1,5 @@
 """
-    Infere publicly available MSI classification models under controlled staining variations, and evaluate their performance.
+    Infer publicly available MSI classification models under controlled staining variations, and evaluate their performance.
 
     Prerequistites:
     1) Extract features for all slides using extract_features.py

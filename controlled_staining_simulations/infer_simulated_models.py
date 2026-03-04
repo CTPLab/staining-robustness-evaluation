@@ -1,5 +1,5 @@
 """
-    Infere simulated MSI classification models under controlled staining variations, and evaluate their performance.
+    Infer simulated MSI classification models under controlled staining variations, and evaluate their performance.
     Runs inference for all n=300 models at once and saves result to csvs.
 
     Prerequistites:
