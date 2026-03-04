@@ -151,24 +151,20 @@ if __name__ == "__main__":
         # Load model
         if "wagner2023" in pretrained_path.lower():
             foundation_model = "ctranspath"
-            aggregator = Wagner2023(
-                input_feature_size=INPUT_FEATURE_SIZE[foundation_model],
-                n_classes=n_classes,
-            )
+            model_family = "wagner2023"
+            aggregator = Wagner2023(pretrained_path=pretrained_path)
+            loss_fn_eval = nn.BCEWithLogitsLoss()
         elif "niehues2023" in pretrained_path.lower():
             foundation_model = "retccl"
-            aggregator = Niehues2023(
-                input_feature_size=INPUT_FEATURE_SIZE[foundation_model],
-                n_classes=n_classes,
-            )
+            model_family = "niehues2023"
+            aggregator = Niehues2023(pretrained_path=pretrained_path)
+            loss_fn_eval = nn.CrossEntropyLoss()
         else:
             raise ValueError(f"Unknown model name in pretrained path: {pretrained_path}")
 
-        aggregator.load_state_dict(torch.load(pretrained_path, weights_only=True, map_location="cpu"))
         aggregator.eval()
         aggregator.to(device)
 
-        loss_fn_eval = nn.CrossEntropyLoss()
         eval_loss = 0
         labels, probs, logits = [], [], []
         fm_feature_dir = glob(f"{args.features_dir}/{foundation_model}_*")
@@ -181,16 +177,29 @@ if __name__ == "__main__":
             features = torch.tensor(
                 np.load(f"{fm_feature_dir}/{slide_id}.npz")["embeds"],
                 dtype=torch.float32,
-            ).to(device)
-            label = torch.tensor([row[args.task]], dtype=torch.long).to(device)
+            ).unsqueeze(0).to(device)
+            label = int(row[args.task])
             with torch.no_grad():
-                logit, Y_prob, Y_hat, A_raw, m = aggregator(features.to(device))
-                loss = loss_fn_eval(logit, label)
-                logit = logit[:, 1].squeeze(0).cpu().item()
-                Y_prob = Y_prob[:, 1].squeeze(0).cpu().item()
-                label = label.cpu().item()
+                if model_family == "wagner2023":
+                    out = aggregator(features)
+                    loss = loss_fn_eval(
+                        out.view(-1),
+                        torch.tensor([label], dtype=torch.float32, device=device),
+                    )
+                    logit = out.view(-1).item()
+                    prob = torch.sigmoid(out).view(-1).item()
+                elif model_family == "niehues2023":
+                    out = aggregator(features)
+                    loss = loss_fn_eval(
+                        out,
+                        torch.tensor([label], dtype=torch.long, device=device),
+                    )
+                    logit = out[:, 1].squeeze(0).cpu().item()
+                    prob = torch.softmax(out, dim=1)[:, 1].squeeze(0).cpu().item()
+                else:
+                    raise RuntimeError(f"Unexpected model family: {model_family}")
                 labels.append(label)
-                probs.append(Y_prob)
+                probs.append(prob)
                 logits.append(logit)
                 eval_loss += loss.item()
 
