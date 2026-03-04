@@ -75,18 +75,6 @@ def crop_rect_from_slide(
     return np.array(tile)
 
 
-def collate_fn(batch: List[Tuple[torch.Tensor, torch.Tensor, int]]) -> List[torch.Tensor]:
-    embeds = torch.cat([item[0] for item in batch], dim=0)
-    label = torch.LongTensor([item[1] for item in batch])
-    return [embeds, label]
-
-
-def print_model(model):
-    print(model)
-    n_trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"Model has {n_trainable_params} parameters")
-
-
 def augment_tile(
     image: np.ndarray,
     stain_source: np.ndarray,
