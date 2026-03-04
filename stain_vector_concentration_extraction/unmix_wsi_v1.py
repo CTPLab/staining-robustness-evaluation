@@ -175,7 +175,6 @@ if __name__ == "__main__":
     csv = "../SURGEN.csv"  # <--- Path to SurGen CSV file
     output_data_dir = f"./stain_vectors"  # <--- Path to store extracted stain vectors and intensities
     output_report_dir = f"./logs"  # <--- Path to store analysis report images for each tile
-    output_intensity_dir = f"./intensities"  # <--- Path to store extracted stain intensities
     tile_size = 224  # um
     out_px = 448  # px
     ######################
@@ -183,7 +182,6 @@ if __name__ == "__main__":
     random.seed(42)
     os.makedirs(output_data_dir, exist_ok=True)
     os.makedirs(output_report_dir, exist_ok=True)
-    os.makedirs(output_intensity_dir, exist_ok=True)
     df = pd.read_csv(csv)
     df = df[(~df["qc_excluded"]) & (~df["MSI"].isna())]
     df["cohort"] = (
