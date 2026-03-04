@@ -9,7 +9,11 @@ sys.dont_write_bytecode = True
 
 import numpy as np
 import scipy.signal
-import utils_global as _ub
+
+try:
+    from utils import utils_global as _ub
+except ImportError:
+    import utils_global as _ub
 
 
 def staining_unmix(
