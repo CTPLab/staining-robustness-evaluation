@@ -102,7 +102,8 @@ def keep_tile(tile: np.ndarray, thresholds: Dict[str, float], tile_name: str = "
         return False
     entropy = float(shannon_entropy(tile))
     colorfulness = colorfulness_variance_filtered(hsv)
-    gray = cv2.cvtColor((tile * 255).astype(np.uint8), cv2.COLOR_RGB2GRAY)
+    assert tile.dtype == np.uint8, f"Expected uint8 tile, got {tile.dtype}"
+    gray = cv2.cvtColor(tile, cv2.COLOR_RGB2GRAY)
     lap_var = float(cv2.Laplacian(gray, cv2.CV_64F).var())
 
     if np.any(mask):
