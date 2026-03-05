@@ -34,7 +34,7 @@ out_px = 448  # px
 ```
 Run script:
 ```bash
-python unmix_wsi_v1.py
+python -m stain_vector_concentration_extraction.unmix_wsi_v1
 ```
 
 Outputs:
@@ -82,7 +82,7 @@ stats_dir = ""  # <--- Path to store computed img metrics
 ```
 Run script:
 ```bash
-python compute_stats.py
+python -m stain_vector_concentration_extraction.compute_stats
 ````
 Outputs
 * per-stain/device CSV metrics: `metrics_<stain>_<device>.csv`
@@ -100,7 +100,7 @@ redo: bool = False  # <--- Force re-processing of tiles
 ```
 Run script:
 ```bash
-python unmix_tiles.py
+python -m stain_vector_concentration_extraction.unmix_tiles
 ```
 
 Outputs:
@@ -125,7 +125,7 @@ out_px = 448  # px
 ```
 Run script:
 ```bash
-python unmix_wsi_v1.py
+python -m stain_vector_concentration_extraction.unmix_wsi_v1
 ```
 
 Outputs:
