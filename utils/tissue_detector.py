@@ -5,7 +5,6 @@
     __creation__ = "2025"
 """
 
-
 import os
 import re
 import xml.etree.ElementTree as ET
@@ -15,9 +14,10 @@ import numpy as np
 import openslide
 import skimage.transform
 import torch
-from models.nature_net import NatureNet, compute_upsampling_and_padding
 from scipy import ndimage
 from skimage.filters import threshold_otsu
+
+from models.nature_net import NatureNet, compute_upsampling_and_padding
 
 
 def compute_diagonal(bbox: List[int]) -> float:

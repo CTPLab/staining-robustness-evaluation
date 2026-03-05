@@ -22,11 +22,12 @@ from typing import Any, Dict, List, Tuple
 import numpy as np
 import pandas as pd
 import torch
-from models.abmil import ClassificationAttentionNet
 from sklearn.metrics import confusion_matrix, roc_auc_score
 from torch import nn
 from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
 from torch.utils.tensorboard import SummaryWriter
+
+from models.abmil import ClassificationAttentionNet
 from utils.gpu_monitor import GPUStatsLogger
 from utils.load_encoder import INPUT_FEATURE_SIZE
 from utils.train_utils import (

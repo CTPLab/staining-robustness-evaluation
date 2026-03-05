@@ -26,12 +26,13 @@ import openslide
 import pandas as pd
 import PIL
 import torch
-import utils_global as _ub
 from PIL import Image
 from shapely.geometry import Polygon
 from skimage.color import rgb2hsv
 from skimage.measure import shannon_entropy
 from tqdm import tqdm
+
+import utils.utils_global as _ub
 from utils.tile_utils import create_tissue_tiles, extract_tile_from_slide
 from utils.tissue_detector import TissueDetector
 from utils.utils_stainUnmix import staining_unmix

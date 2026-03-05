@@ -78,6 +78,16 @@ def Attention(n_in: int, n_latent: Optional[int] = None) -> nn.Module:
     return nn.Sequential(nn.Linear(n_in, n_latent), nn.Tanh(), nn.Linear(n_latent, 1))
 
 
+class BinaryLogitWrapper(nn.Module):
+    def __init__(self, model: nn.Module):
+        super().__init__()
+        self.model = model
+
+    def forward(self, *args, **kwargs) -> torch.Tensor:
+        out = self.model(*args, **kwargs)
+        return (out[:, 0] - out[:, 1]).view(-1)
+
+
 def Niehues2023(
     pretrained_path: str = "../models/NIEHEUS2023/export-0.pth",
 ) -> nn.Module:
@@ -85,7 +95,7 @@ def Niehues2023(
     ckpt = torch.load(pretrained_path, map_location="cpu")
     e = mil.load_state_dict(ckpt)
     print(e)
-    return mil
+    return BinaryLogitWrapper(mil)
 
 
 if __name__ == "__main__":
