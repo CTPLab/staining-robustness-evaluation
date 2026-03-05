@@ -84,7 +84,7 @@ Used for dataset splits and evaluation in the manuscript.
 Install core dependencies:
 
 ```bash
-pip install torch torchvision numpy scikit-image openslide-python opencv-python-headless timm huggingface-hub einops pillow scipy shapely pandas scikit-learn
+pip install torch torchvision numpy scikit-image openslide-python opencv-python-headless timm huggingface-hub einops pillow scipy shapely pandas matplotlib seaborn scikit-learn
 ```
 
 ### 2. Typical Workflows
