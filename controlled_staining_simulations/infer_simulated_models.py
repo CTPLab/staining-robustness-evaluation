@@ -17,53 +17,23 @@ import re
 from datetime import datetime
 from glob import glob
 from pathlib import Path
-from typing import Dict, Tuple
 
 import numpy as np
 import pandas as pd
 import torch
-from models.abmil import ClassificationAttentionNet
-from sklearn.metrics import f1_score, precision_score, recall_score, roc_auc_score
+from sklearn.metrics import roc_auc_score
 from torch import nn
+
+from models.abmil import ClassificationAttentionNet
 from utils.gpu_monitor import GPUStatsLogger
 from utils.load_encoder import INPUT_FEATURE_SIZE
+from utils.train_eval_utils import bootstrap_metrics_ci
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[logging.StreamHandler()],
 )
-
-
-def bootstrap_metrics_ci(
-    labels: np.ndarray,
-    preds: np.ndarray,
-    n_bootstraps: int = 1000,
-    ci: float = 0.95,
-    seed: int = 42,
-    th: float = 0.5,
-) -> Dict[str, Tuple[float, float, float]]:
-    rng = np.random.default_rng(seed)
-    metrics = {"auc": [], "precision": [], "recall": [], "f1": []}
-    n = len(labels)
-    for _ in range(n_bootstraps):
-        idx = rng.integers(0, n, n)
-        if len(np.unique(labels[idx])) < 2:
-            continue
-        metrics["auc"].append(roc_auc_score(labels[idx], preds[idx]))
-        metrics["precision"].append(precision_score(labels[idx], preds[idx] > th))
-        metrics["recall"].append(recall_score(labels[idx], preds[idx] > th))
-        metrics["f1"].append(f1_score(labels[idx], preds[idx] > th))
-
-    alpha = (1 - ci) / 2
-    result = {}
-    for k, v in metrics.items():
-        v_sorted = np.sort(v)
-        lower = np.percentile(v_sorted, 100 * alpha)
-        mean = np.mean(v_sorted)
-        upper = np.percentile(v_sorted, 100 * (1 - alpha))
-        result[k] = (mean, lower, upper)
-    return result
 
 
 if __name__ == "__main__":

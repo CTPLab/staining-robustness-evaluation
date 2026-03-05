@@ -1,5 +1,9 @@
 """
     Infer publicly available MSI classification models under controlled staining variations, and evaluate their performance.
+    
+    Script can be utilized for any other task, dataset and model, with the following limitations:
+    - Currently only supports binary classification, expected model output is single logit (Batch_size,).
+    - To utilize your own models, please add your own model loading logic.
 
     Prerequistites:
     1) Extract features for all slides using extract_features.py
@@ -16,16 +20,17 @@ import re
 from datetime import datetime
 from glob import glob
 from pathlib import Path
-from typing import Dict, Tuple
 
 import numpy as np
 import pandas as pd
 import torch
+from sklearn.metrics import roc_auc_score
+from torch import nn
+
 from models.niehues2023 import Niehues2023
 from models.wagner2023 import Wagner2023
-from sklearn.metrics import f1_score, precision_score, recall_score, roc_auc_score
-from torch import nn
 from utils.gpu_monitor import GPUStatsLogger
+from utils.train_eval_utils import bootstrap_metrics_ci
 
 logging.basicConfig(
     level=logging.INFO,
@@ -34,47 +39,16 @@ logging.basicConfig(
 )
 
 
-def bootstrap_metrics_ci(
-    labels: np.ndarray,
-    preds: np.ndarray,
-    n_bootstraps: int = 1000,
-    ci: float = 0.95,
-    seed: int = 42,
-    th: float = 0.5,
-) -> Dict[str, Tuple[float, float, float]]:
-    rng = np.random.default_rng(seed)
-    metrics = {"auc": [], "precision": [], "recall": [], "f1": []}
-    n = len(labels)
-    for _ in range(n_bootstraps):
-        idx = rng.integers(0, n, n)
-        if len(np.unique(labels[idx])) < 2:
-            continue
-        metrics["auc"].append(roc_auc_score(labels[idx], preds[idx]))
-        metrics["precision"].append(precision_score(labels[idx], preds[idx] > th))
-        metrics["recall"].append(recall_score(labels[idx], preds[idx] > th))
-        metrics["f1"].append(f1_score(labels[idx], preds[idx] > th))
-
-    alpha = (1 - ci) / 2
-    result = {}
-    for k, v in metrics.items():
-        v_sorted = np.sort(v)
-        lower = np.percentile(v_sorted, 100 * alpha)
-        mean = np.mean(v_sorted)
-        upper = np.percentile(v_sorted, 100 * (1 - alpha))
-        result[k] = (mean, lower, upper)
-    return result
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--csv", type=str, required=True, default="../SURGEN.csv")
+    parser.add_argument("--csv", type=str, default="SURGEN.csv")
     parser.add_argument(
         "--features_dir",
         "--feature_dir",
         dest="features_dir",
         type=str,
         required=True,
-        help="Directory containing extracted features. Generate with extract_features.py",
+        help="High-level directory containing extracted features. Generate with extract_features.py",
     )
     parser.add_argument(
         "--pretrained_model",
@@ -88,6 +62,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
     ci = 0.95  # 95% confidence interval for bootstrapping
     model_name = f"agg={Path(args.pretrained_model).stem}"
+    assert Path(
+        args.csv
+    ).exists(), f"CSV file {args.csv} does not exist, please verify the path or ensure you are in the staining-robustness-evaluation directory when wanting to use SURGEN.csv."
+
     cohort = Path(args.csv).stem
     logging.info("\n".join(f"{k}: {v}" for k, v in vars(args).items()))
     df = pd.read_csv(args.csv)
@@ -129,14 +107,14 @@ if __name__ == "__main__":
             foundation_model = "ctranspath"
             model_family = "wagner2023"
             aggregator = Wagner2023(pretrained_path=pretrained_path)
-            loss_fn_eval = nn.BCEWithLogitsLoss()
         elif "niehues2023" in pretrained_path.lower():
             foundation_model = "retccl"
             model_family = "niehues2023"
             aggregator = Niehues2023(pretrained_path=pretrained_path)
-            loss_fn_eval = nn.CrossEntropyLoss()
+        ## FIXME: Add your own model loading logic here
         else:
             raise ValueError(f"Unknown model name in pretrained path: {pretrained_path}")
+        loss_fn_eval = nn.BCEWithLogitsLoss()
 
         aggregator.eval()
         aggregator.to(device)
@@ -150,33 +128,25 @@ if __name__ == "__main__":
         fm_feature_dir = fm_feature_dir[0]
         for i, row in df.iterrows():
             slide_id = row["slide_id"]
-            features = torch.tensor(
-                np.load(f"{fm_feature_dir}/{slide_id}.npz")["embeds"],
-                dtype=torch.float32,
-            ).unsqueeze(0).to(device)
+            features = (
+                torch.tensor(
+                    np.load(f"{fm_feature_dir}/{slide_id}.npz")["embeds"],
+                    dtype=torch.float32,
+                )
+                .unsqueeze(0)
+                .to(device)
+            )
             label = int(row[args.task])
             with torch.no_grad():
-                if model_family == "wagner2023":
-                    out = aggregator(features)
-                    loss = loss_fn_eval(
-                        out.view(-1),
-                        torch.tensor([label], dtype=torch.float32, device=device),
-                    )
-                    logit = out.view(-1).item()
-                    prob = torch.sigmoid(out).view(-1).item()
-                elif model_family == "niehues2023":
-                    out = aggregator(features)
-                    loss = loss_fn_eval(
-                        out,
-                        torch.tensor([label], dtype=torch.long, device=device),
-                    )
-                    logit = out[:, 1].squeeze(0).cpu().item()
-                    prob = torch.softmax(out, dim=1)[:, 1].squeeze(0).cpu().item()
-                else:
-                    raise RuntimeError(f"Unexpected model family: {model_family}")
+                logit = aggregator(features)
+                target = torch.tensor([label], dtype=torch.float32, device=device)
+                loss = loss_fn_eval(logit, target)
+
+                prob = torch.sigmoid(logit)
+
                 labels.append(label)
-                probs.append(prob)
-                logits.append(logit)
+                probs.append(prob.item())
+                logits.append(logit.item())
                 eval_loss += loss.item()
 
         torch.cuda.empty_cache()
