@@ -134,80 +134,81 @@ if __name__ == "__main__":
                 image = image[:, :, :3]
                 image = image.astype(np.uint8)
 
-            if os.path.exists(f"{output_dir}/analysis_reports/{image_filename}_analysisReport.png") or not redo:
+            report_path = f"{output_dir}/analysis_reports/{stain}_{device}/{image_filename}_analysisReport.png"
+            if os.path.exists(report_path) and not redo:
                 continue
-            else:
-                df = stats_dfs[f"{stain}_{device}"]
-                row = df[df["fp"] == fp].iloc[0].to_dict()
-                if not apply_thresholds(row, thresholds[f"{stain}_{device}"]):
-                    if os.path.exists(f"{output_dir}/analysis_reports/{image_filename}_analysisReport.png"):
-                        os.remove(f"{output_dir}/analysis_reports/{image_filename}_analysisReport.png")
-                    if os.path.exists(f"{output_dir}/npz/{stain}_{device}/{image_filename}.npz"):
-                        os.remove(f"{output_dir}/npz/{stain}_{device}/{image_filename}.npz")
-                    continue
 
-                """ 2) APPLY STAIN UNMIXING ALGORITHM
-                """
-                result = staining_unmix(
-                    image,
-                    _c.patch_subsampling_factor,
-                    _c.background_cutoff_percentile,
-                    _c.foreground_cutoff,
-                    _c.scatterplot_smoothing_kernel,
-                    _c.scatterplot_smoothing_stdev,
-                    80 if stain[-1] == "H" else 95,
-                    95 if stain[-1] == "H" else 80,
-                    _c.angular_shift,
-                )
-                if result is None:
-                    continue
+            df = stats_dfs[f"{stain}_{device}"]
+            row = df[df["fp"] == fp].iloc[0].to_dict()
+            if not apply_thresholds(row, thresholds[f"{stain}_{device}"]):
+                if os.path.exists(report_path):
+                    os.remove(report_path)
+                if os.path.exists(f"{output_dir}/npz/{stain}_{device}/{image_filename}.npz"):
+                    os.remove(f"{output_dir}/npz/{stain}_{device}/{image_filename}.npz")
+                continue
 
-                MAE_score, report_dict, max_intensity_vect, HE_max_val, stainMatrix = result
-                print(f">> Image sucessfully unmixed (reconstruction.MAE={MAE_score})")
+            """ 2) APPLY STAIN UNMIXING ALGORITHM
+            """
+            result = staining_unmix(
+                image,
+                _c.patch_subsampling_factor,
+                _c.background_cutoff_percentile,
+                _c.foreground_cutoff,
+                _c.scatterplot_smoothing_kernel,
+                _c.scatterplot_smoothing_stdev,
+                80 if stain[-1] == "H" else 95,
+                95 if stain[-1] == "H" else 80,
+                _c.angular_shift,
+            )
+            if result is None:
+                continue
 
-                """ 3) EXPORT STAIN DATA
-                """
-                stainMatrix_inv = None
-                if np.any(stainMatrix):
-                    stainMatrix_inv = np.linalg.inv(stainMatrix)
+            MAE_score, report_dict, max_intensity_vect, HE_max_val, stainMatrix = result
+            print(f">> Image sucessfully unmixed (reconstruction.MAE={MAE_score})")
 
-                export_dict = {
-                    "maxIntensityVect": max_intensity_vect.astype(np.float32),
-                    "maxStainIntensityVect": HE_max_val.astype(np.float32),
-                    "stainMatrix": stainMatrix.astype(np.float32),
-                    "stainMatrixInv": stainMatrix_inv.astype(np.float32),
+            """ 3) EXPORT STAIN DATA
+            """
+            stainMatrix_inv = None
+            if np.any(stainMatrix):
+                stainMatrix_inv = np.linalg.inv(stainMatrix)
+
+            export_dict = {
+                "maxIntensityVect": max_intensity_vect.astype(np.float32),
+                "maxStainIntensityVect": HE_max_val.astype(np.float32),
+                "stainMatrix": stainMatrix.astype(np.float32),
+                "stainMatrixInv": stainMatrix_inv.astype(np.float32),
+            }
+            intensity_stat = get_intensity(image, stainMatrix)
+            export_dict = {**export_dict, **intensity_stat}
+            intensity_stats.append(
+                {
+                    "image_filename": image_filename,
+                    "stain": stain,
+                    "device": device,
+                    **intensity_stat,
                 }
-                intensity_stat = get_intensity(image, stainMatrix)
-                export_dict = {**export_dict, **intensity_stat}
-                intensity_stats.append(
-                    {
-                        "image_filename": image_filename,
-                        "stain": stain,
-                        "device": device,
-                        **intensity_stat,
-                    }
-                )
+            )
 
-                if not os.path.isdir(f"{output_dir}/npz/{stain}_{device}"):
-                    os.makedirs(f"{output_dir}/npz/{stain}_{device}", exist_ok=True)
-                path_target = f"{output_dir}/npz/{stain}_{device}/{image_filename}.npz"
-                np.savez(path_target, **export_dict)
-                print(f">> Stain data exported at: {path_target}")
+            if not os.path.isdir(f"{output_dir}/npz/{stain}_{device}"):
+                os.makedirs(f"{output_dir}/npz/{stain}_{device}", exist_ok=True)
+            path_target = f"{output_dir}/npz/{stain}_{device}/{image_filename}.npz"
+            np.savez(path_target, **export_dict)
+            print(f">> Stain data exported at: {path_target}")
 
-                """ 4) GENERATE AN ANALYSIS REPORT
-                """
-                report_image_list = []
-                for k, v in report_dict.items():
-                    _text = _ub.text2np(k, 14)
-                    img_c = _ub.concat_vertical([v, _text])
-                    report_image_list.append(img_c)
+            """ 4) GENERATE AN ANALYSIS REPORT
+            """
+            report_image_list = []
+            for k, v in report_dict.items():
+                _text = _ub.text2np(k, 14)
+                img_c = _ub.concat_vertical([v, _text])
+                report_image_list.append(img_c)
 
-                if not os.path.isdir(f"{output_dir}/analysis_reports/{stain}_{device}"):
-                    os.makedirs(f"{output_dir}/analysis_reports/{stain}_{device}", exist_ok=True)
-                path_target = f"{output_dir}/analysis_reports/{stain}_{device}/{image_filename}_analysisReport.png"
-                image_out = _ub.concat_horizontal(report_image_list)
-                image_out = image_out.astype(np.uint8)
-                Image.fromarray(image_out).save(path_target)
-                print(f">> Analysis report exported at: {path_target}")
+            if not os.path.isdir(f"{output_dir}/analysis_reports/{stain}_{device}"):
+                os.makedirs(f"{output_dir}/analysis_reports/{stain}_{device}", exist_ok=True)
+            path_target = f"{output_dir}/analysis_reports/{stain}_{device}/{image_filename}_analysisReport.png"
+            image_out = _ub.concat_horizontal(report_image_list)
+            image_out = image_out.astype(np.uint8)
+            Image.fromarray(image_out).save(path_target)
+            print(f">> Analysis report exported at: {path_target}")
 
-                pd.DataFrame(intensity_stats).to_csv(f"{output_dir}/intensity_stats.csv", index=False)
+            pd.DataFrame(intensity_stats).to_csv(f"{output_dir}/intensity_stats.csv", index=False)

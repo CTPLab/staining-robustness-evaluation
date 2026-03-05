@@ -1,5 +1,5 @@
 """
-    Infere publicly available MSI classification models under controlled staining variations, and evaluate their performance.
+    Infer publicly available MSI classification models under controlled staining variations, and evaluate their performance.
 
     Prerequistites:
     1) Extract features for all slides using extract_features.py
@@ -16,7 +16,7 @@ import re
 from datetime import datetime
 from glob import glob
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, Tuple
 
 import numpy as np
 import pandas as pd
@@ -26,7 +26,6 @@ from models.wagner2023 import Wagner2023
 from sklearn.metrics import f1_score, precision_score, recall_score, roc_auc_score
 from torch import nn
 from utils.gpu_monitor import GPUStatsLogger
-from utils.load_encoder import INPUT_FEATURE_SIZE
 
 logging.basicConfig(
     level=logging.INFO,
@@ -66,34 +65,13 @@ def bootstrap_metrics_ci(
     return result
 
 
-def collate_fn(batch: List[Tuple[torch.Tensor, torch.Tensor, int]]) -> List[torch.Tensor]:
-    embeds = torch.cat([item[0] for item in batch], dim=0)
-    label = torch.LongTensor([item[1] for item in batch])
-    return [embeds, label]
-
-
-def print_model(model):
-    print(model)
-    n_trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    logging.info(f"Model has {n_trainable_params} parameters")
-
-
-def compute_cm_metrics(cm: np.ndarray) -> Tuple[float, float, float]:
-    def safe_divide(numerator: np.ndarray, denominator: np.ndarray) -> float:
-        with np.errstate(divide="ignore", invalid="ignore"):
-            return float(numerator / denominator)
-
-    precision = safe_divide(cm[1, 1], cm[:, 1].sum())
-    recall = safe_divide(cm[1, 1], cm[1, :].sum())
-    f1 = safe_divide(cm[1, 1], (0.5 * (cm[0, 1] + cm[1, 0]) + cm[1, 1]))
-    return precision, recall, f1
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--csv", type=str, required=True, default="../SURGEN.csv")
     parser.add_argument(
+        "--features_dir",
         "--feature_dir",
+        dest="features_dir",
         type=str,
         required=True,
         help="Directory containing extracted features. Generate with extract_features.py",
@@ -107,9 +85,9 @@ if __name__ == "__main__":
     parser.add_argument("--gpu_id", type=int, default=0)
     parser.add_argument("--task", type=str, default="MSI")
 
+    args = parser.parse_args()
     ci = 0.95  # 95% confidence interval for bootstrapping
     model_name = f"agg={Path(args.pretrained_model).stem}"
-    args = parser.parse_args()
     cohort = Path(args.csv).stem
     logging.info("\n".join(f"{k}: {v}" for k, v in vars(args).items()))
     df = pd.read_csv(args.csv)
@@ -130,9 +108,8 @@ if __name__ == "__main__":
     n_classes = 2
     device = torch.device(f"cuda:{args.gpu_id}" if torch.cuda.is_available() else "cpu")
     assert device.type == "cuda" and device.index == args.gpu_id, f"Device is not cuda:{args.gpu_id}"
-    sim_settings = pd.read_csv(args.sim_settings_csv)
     log_csv_path = f"{args.output_dir}/gpu_logs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-    gpu_logger = GPUStatsLogger(csv_path=log_csv_path, poll_interval=0.1, gpu_ids=[0])
+    gpu_logger = GPUStatsLogger(csv_path=log_csv_path, poll_interval=0.1, gpu_ids=[args.gpu_id])
 
     try:
         gpu_logger.start()
@@ -150,24 +127,20 @@ if __name__ == "__main__":
         # Load model
         if "wagner2023" in pretrained_path.lower():
             foundation_model = "ctranspath"
-            aggregator = Wagner2023(
-                input_feature_size=INPUT_FEATURE_SIZE[foundation_model],
-                n_classes=n_classes,
-            )
+            model_family = "wagner2023"
+            aggregator = Wagner2023(pretrained_path=pretrained_path)
+            loss_fn_eval = nn.BCEWithLogitsLoss()
         elif "niehues2023" in pretrained_path.lower():
             foundation_model = "retccl"
-            aggregator = Niehues2023(
-                input_feature_size=INPUT_FEATURE_SIZE[foundation_model],
-                n_classes=n_classes,
-            )
+            model_family = "niehues2023"
+            aggregator = Niehues2023(pretrained_path=pretrained_path)
+            loss_fn_eval = nn.CrossEntropyLoss()
         else:
             raise ValueError(f"Unknown model name in pretrained path: {pretrained_path}")
 
-        aggregator.load_state_dict(torch.load(pretrained_path, weights_only=True, map_location="cpu"))
         aggregator.eval()
         aggregator.to(device)
 
-        loss_fn_eval = nn.CrossEntropyLoss()
         eval_loss = 0
         labels, probs, logits = [], [], []
         fm_feature_dir = glob(f"{args.features_dir}/{foundation_model}_*")
@@ -180,16 +153,29 @@ if __name__ == "__main__":
             features = torch.tensor(
                 np.load(f"{fm_feature_dir}/{slide_id}.npz")["embeds"],
                 dtype=torch.float32,
-            ).to(device)
-            label = torch.tensor([row[args.task]], dtype=torch.long).to(device)
+            ).unsqueeze(0).to(device)
+            label = int(row[args.task])
             with torch.no_grad():
-                logit, Y_prob, Y_hat, A_raw, m = aggregator(features.to(device))
-                loss = loss_fn_eval(logit, label)
-                logit = logit[:, 1].squeeze(0).cpu().item()
-                Y_prob = Y_prob[:, 1].squeeze(0).cpu().item()
-                label = label.cpu().item()
+                if model_family == "wagner2023":
+                    out = aggregator(features)
+                    loss = loss_fn_eval(
+                        out.view(-1),
+                        torch.tensor([label], dtype=torch.float32, device=device),
+                    )
+                    logit = out.view(-1).item()
+                    prob = torch.sigmoid(out).view(-1).item()
+                elif model_family == "niehues2023":
+                    out = aggregator(features)
+                    loss = loss_fn_eval(
+                        out,
+                        torch.tensor([label], dtype=torch.long, device=device),
+                    )
+                    logit = out[:, 1].squeeze(0).cpu().item()
+                    prob = torch.softmax(out, dim=1)[:, 1].squeeze(0).cpu().item()
+                else:
+                    raise RuntimeError(f"Unexpected model family: {model_family}")
                 labels.append(label)
-                probs.append(Y_prob)
+                probs.append(prob)
                 logits.append(logit)
                 eval_loss += loss.item()
 

@@ -81,8 +81,6 @@ if __name__ == "__main__":
     #####################
 
     df = pd.read_csv(f"{data_dir}/PLISM_wsi_en.csv")
-    entropy_thresh = 6.4
-
     for stain, stain_df in df.groupby("stain"):
         for device, subset_df in stain_df.groupby("device"):
             all_metrics = []

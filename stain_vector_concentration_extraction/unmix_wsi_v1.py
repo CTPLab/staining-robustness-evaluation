@@ -95,13 +95,15 @@ def colorfulness_variance_filtered(hsv: np.ndarray) -> float:
 def keep_tile(tile: np.ndarray, thresholds: Dict[str, float], tile_name: str = "") -> bool:
     hsv = rgb2hsv(tile)
     sat, val, h = hsv[..., 1], hsv[..., 2], hsv[..., 0]
+    mask = sat > 0.1
     frac_sat = float(np.mean(sat > 0.2))
     if frac_sat < thresholds["frac_sat"]:
         print(f"Ignore {tile_name}: low saturation ({frac_sat:.2f} < {thresholds['frac_sat']:.2f})")
         return False
     entropy = float(shannon_entropy(tile))
     colorfulness = colorfulness_variance_filtered(hsv)
-    gray = cv2.cvtColor((tile * 255).astype(np.uint8), cv2.COLOR_RGB2GRAY)
+    assert tile.dtype == np.uint8, f"Expected uint8 tile, got {tile.dtype}"
+    gray = cv2.cvtColor(tile, cv2.COLOR_RGB2GRAY)
     lap_var = float(cv2.Laplacian(gray, cv2.CV_64F).var())
 
     if np.any(mask):
@@ -174,7 +176,6 @@ if __name__ == "__main__":
     csv = "../SURGEN.csv"  # <--- Path to SurGen CSV file
     output_data_dir = f"./stain_vectors"  # <--- Path to store extracted stain vectors and intensities
     output_report_dir = f"./logs"  # <--- Path to store analysis report images for each tile
-    output_intensity_dir = f"./intensities"  # <--- Path to store extracted stain intensities
     tile_size = 224  # um
     out_px = 448  # px
     ######################
@@ -182,7 +183,6 @@ if __name__ == "__main__":
     random.seed(42)
     os.makedirs(output_data_dir, exist_ok=True)
     os.makedirs(output_report_dir, exist_ok=True)
-    os.makedirs(output_intensity_dir, exist_ok=True)
     df = pd.read_csv(csv)
     df = df[(~df["qc_excluded"]) & (~df["MSI"].isna())]
     df["cohort"] = (
@@ -268,7 +268,6 @@ if __name__ == "__main__":
                     report_image_list.append(img_c)
 
                 H, E = stainMatrix[:, 0], stainMatrix[:, 1]
-                h_sph, e_sph = to_spherical(H), to_spherical(E)
                 h_sph, e_sph = to_spherical(H), to_spherical(E)
                 if h_sph[1] > e_sph[1] and h_sph[0] > e_sph[0]:
                     png_fp = f"{output_report_dir}/{slide_id}/{slide_id}_xmin={x_min}_ymin={y_min}_xmax={x_max}_ymax={y_max}_analysisReport_ignored.png"

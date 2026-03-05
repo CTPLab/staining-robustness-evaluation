@@ -79,7 +79,9 @@ def create_tissue_tiles(
     offsets = [(min_offset_x, min_offset_y)]
 
     if offsets_micron is not None:
-        offset_pix = [round(o / mpp_scale_factor) for o in offsets_micron]
+        if np.isscalar(offsets_micron):
+            offsets_micron = [offsets_micron]
+        offset_pix = [round(float(o) / mpp_scale_factor) for o in offsets_micron]
         offsets = [(o + min_offset_x, o + min_offset_y) for o in offset_pix]
 
     filtered_tiles = generate_tiles(
@@ -160,6 +162,7 @@ def extract_tile_from_slide(
         f = slide.level_downsamples[level]
         w, h = round((maxx - minx) / f), round((maxy - miny) / f)
     else:
+        level = 0
         w, h = int(maxx - minx), int(maxy - miny)
 
     tile = slide.read_region(top_left_coords, level, (w, h))

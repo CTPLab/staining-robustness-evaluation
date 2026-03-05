@@ -19,7 +19,6 @@
 
 import argparse
 import os
-import re
 from datetime import datetime
 from glob import glob
 from pathlib import Path
@@ -31,13 +30,12 @@ import pandas as pd
 import torch
 import torch.nn.functional as F
 from PIL import Image
-from torch import nn
 from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 from tqdm import tqdm
 from utils.gpu_monitor import GPUStatsLogger
 from utils.load_encoder import ENCODER_LOADERS, ENCODER_NORMALIZATIONS, INPUT_FEATURE_SIZE
-from utils.tile_utils import create_tissue_tiles, extract_tile_from_slide
+from utils.tile_utils import create_tissue_tiles
 from utils.tissue_detector import TissueDetector
 
 
@@ -68,23 +66,12 @@ def crop_rect_from_slide(
         f = slide.level_downsamples[level]
         w, h = round((maxx - minx) / f), round((maxy - miny) / f)
     else:
+        level = 0
         w, h = int(maxx - minx), int(maxy - miny)
 
     tile = slide.read_region(top_left_coords, level, (w, h))
     tile = tile.convert("RGB").resize((out_size, out_size))
     return np.array(tile)
-
-
-def collate_fn(batch: List[Tuple[torch.Tensor, torch.Tensor, int]]) -> List[torch.Tensor]:
-    embeds = torch.cat([item[0] for item in batch], dim=0)
-    label = torch.LongTensor([item[1] for item in batch])
-    return [embeds, label]
-
-
-def print_model(model):
-    print(model)
-    n_trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"Model has {n_trainable_params} parameters")
 
 
 def augment_tile(
@@ -267,15 +254,15 @@ if __name__ == "__main__":
     print(f"=> Output dir: {output_dir}")
     for fm in foundation_models:
         os.makedirs(f"{output_dir}/{fm}_features_{um_size}um_{px_size}px_fcnn", exist_ok=True)
+    device = torch.device(f"cuda:{args.gpu_id}" if torch.cuda.is_available() else "cpu")
+    assert device.type == "cuda" and device.index == args.gpu_id, f"Device is not cuda:{args.gpu_id}"
     log_csv_path = f"{output_dir}/gpu_logs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
     gpu_logger = GPUStatsLogger(csv_path=log_csv_path, poll_interval=0.1, gpu_ids=[args.gpu_id])
     tissue_detector = TissueDetector(tissue_method="fcnn", device=device)
 
     try:
         gpu_logger.start()
-        device = torch.device(f"cuda:{args.gpu_id}" if torch.cuda.is_available() else "cpu")
-        assert device.type == "cuda" and device.index == args.gpu_id, f"Device is not cuda:{args.gpu_id}"
-        encoders, aggregators, means, stds = {}, {}, {}, {}
+        encoders, means, stds = {}, {}, {}
         for fm in foundation_models:
             means[fm] = torch.tensor(ENCODER_NORMALIZATIONS[fm]["mean"], device=device, dtype=torch.float32).view(
                 1, -1, 1, 1

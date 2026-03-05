@@ -1,5 +1,5 @@
 """
-    Infere simulated MSI classification models under controlled staining variations, and evaluate their performance.
+    Infer simulated MSI classification models under controlled staining variations, and evaluate their performance.
     Runs inference for all n=300 models at once and saves result to csvs.
 
     Prerequistites:
@@ -17,7 +17,7 @@ import re
 from datetime import datetime
 from glob import glob
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, Tuple
 
 import numpy as np
 import pandas as pd
@@ -64,29 +64,6 @@ def bootstrap_metrics_ci(
         upper = np.percentile(v_sorted, 100 * (1 - alpha))
         result[k] = (mean, lower, upper)
     return result
-
-
-def collate_fn(batch: List[Tuple[torch.Tensor, torch.Tensor, int]]) -> List[torch.Tensor]:
-    embeds = torch.cat([item[0] for item in batch], dim=0)
-    label = torch.LongTensor([item[1] for item in batch])
-    return [embeds, label]
-
-
-def print_model(model):
-    print(model)
-    n_trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    logging.info(f"Model has {n_trainable_params} parameters")
-
-
-def compute_cm_metrics(cm: np.ndarray) -> Tuple[float, float, float]:
-    def safe_divide(numerator: np.ndarray, denominator: np.ndarray) -> float:
-        with np.errstate(divide="ignore", invalid="ignore"):
-            return float(numerator / denominator)
-
-    precision = safe_divide(cm[1, 1], cm[:, 1].sum())
-    recall = safe_divide(cm[1, 1], cm[1, :].sum())
-    f1 = safe_divide(cm[1, 1], (0.5 * (cm[0, 1] + cm[1, 0]) + cm[1, 1]))
-    return precision, recall, f1
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
-# Infere CPath models under simulated reference staining conditions
+# Infer CPath models under simulated reference staining conditions
 
 This subfolder contains scripts to:
-1. **Infere (your) CPath models on your own dataset and selected reference conditions.**
+1. **Infer (your) CPath models on your own dataset and selected reference conditions.**
 2. **Reproduce the experiments from the paper (MSI in CRC, SurGen cohort).**
 
 ---
@@ -10,12 +10,12 @@ This subfolder contains scripts to:
 | Protocol Step | Repository Component |
 |---------------|---------------------|
 | Controlled simulation + feature extraction | `extract_features.py` |
-| Model inference | `infere_simulated_models.py`, `infere_public_models.py` |
+| Model inference | `infer_simulated_models.py`, `infer_public_models.py` |
 | Training simulated ABMIL models | `train_abmil.py` |
 
 ---
 
-## Infere CPath models on your own dataset and selected reference conditions.
+## Infer CPath models on your own dataset and selected reference conditions.
 
 This assumes you already selected reference staining conditions and extracted H&E stain vectors and intensities for your own datasets. If this is not the case please check [stain_vector_concentration_extraction](stain_vector_concentration_extraction/) and [README](./README.md).
 
@@ -28,7 +28,7 @@ python extract_features.py \
     --task ##NAME-OF-YOUR-TASK-COLUMN## \
     --csv  ##PATH/TO/YOUR/DATASET/CSV## \
     --output_dir  ##PATH/TO/YOUR/OUTPUTDIR## \
-    --foundation_models Univ2 \
+    --foundation_models univ2 \
     --stain_dir ##PATH/TO/YOUR/DATASETS/STAIN-PROPS## \
     --ref_stain_dir ##PATH/TO/YOUR/REFERENCE-LIBRARY## \ 
     --um_size 224 \ ## set as desired, currently 224px X 224px at 1 um/px (10x)
@@ -42,7 +42,7 @@ Outputs:
 ```
 features_output/
     intensity=None_stain=None/
-        UNIv2_features_224um_224px_fcnn/
+        univ2_features_224um_224px_fcnn/
             SLIDE_ID.npz
 ```
 
@@ -56,7 +56,7 @@ Repeat this for:
 
 ---
 ### 2. Run Inference
-I recommend building on `infere_public_models.py`, which expects features extracted with `extract_features.py` and allows providing a pre-trained model path. 
+I recommend building on `infer_public_models.py`, which expects features extracted with `extract_features.py` and allows providing a pre-trained model path. 
 
 Please add your custom aggregator architecture in the script:
 ```python
@@ -80,7 +80,7 @@ Please repeat for each staining condition, setting `--features_dir features_outp
 
 e.g. for low intensity condition
 ```bash
-python controlled_staining_simulations/infere_simulated_models.py \
+python controlled_staining_simulations/infer_simulated_models.py \
   --task ##NAME-OF-YOUR-TASK-COLUMN## \
   --csv  ##PATH/TO/YOUR/DATASET/CSV## \
   --features_dir ##PATH/TO/YOUR/FEATURESDIR##/intensity=KRH_GT450_stain=None \
@@ -134,13 +134,13 @@ Four stain conditions:
 
 Eg. for low intensity condition:
 
-Uni2-h, HOptimus1, Virchow2  -> 224px X 224px at 1 um/px (10x): 
+`univ2`, `hoptimus1`, `virchow2` -> 224px X 224px at 1 um/px (10x): 
 ```bash
 python extract_features.py \
     --task MSI \
     --csv SURGEN.csv \
     --output_dir ##PATH/TO/YOUR/OUTPUTDIR## \
-    --foundation_models Univ2,HOptimus1,Virchow2 \
+    --foundation_models univ2,hoptimus1,virchow2 \
     --stain_dir ##PATH-TO-SURGEN-STAINS## \
     --ref_stain_dir ##PATH-TO-PLISM-REFERENCES## \ 
     --um_size 224 \
@@ -158,7 +158,7 @@ python extract_features.py \
     --task MSI \
     --csv SURGEN.csv \
     --output_dir ##PATH/TO/YOUR/OUTPUTDIR## \
-    --foundation_models Univ2,HOptimus1,Virchow2 \
+    --foundation_models univ2,hoptimus1,virchow2 \
     --stain_dir ##PATH/TO/surgen_stain_properties## \
     --ref_stain_dir ##PATH/TO/plism-wsi_stain_references## \ 
     --um_size 256 \
@@ -174,7 +174,7 @@ Outputs:
 ```
 features/
     intensity=None_stain=None/
-        UNIv2_features_224um_224px_fcnn/
+        univ2_features_224um_224px_fcnn/
             SLIDE_ID.npz
 ```
 
@@ -194,7 +194,7 @@ Runs inference for all 300 models for one staining condition. Please repeat for 
 
 e.g. for low intensity condition
 ```bash
-python controlled_staining_simulations/infere_simulated_models.py \
+python controlled_staining_simulations/infer_simulated_models.py \
   --csv SURGEN.csv \
   --features_dir features_output/intensity=KRH_GT450_stain=None \
   --sim_settings_csv ###PATH/TO/fixed_simulation_hps_n=300.csv### \
@@ -217,9 +217,9 @@ results/
 Runs inference for a public model on one staining condition. Please repeat for both public models (WAGNER2023, NIEHEUS2023) and each staining condition, setting `--features_dir features_output/intensity=None_stain=None` accordingly.
 
 ```bash
-python controlled_staining_simulations/infere_public_models.py \
+python controlled_staining_simulations/infer_public_models.py \
   --csv SURGEN.csv \
-  --feature_dir features_output/intensity=None_stain=None \
+  --features_dir features_output/intensity=None_stain=None \
   --pretrained_model models/WAGNER2023/model.pth \
   --output_dir results \
   --gpu_id 0
