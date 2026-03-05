@@ -62,16 +62,13 @@ Please add your custom aggregator architecture in the script:
 ```python
         if "wagner2023" in pretrained_path.lower():
             foundation_model = "ctranspath"
-            aggregator = Wagner2023(
-                input_feature_size=INPUT_FEATURE_SIZE[foundation_model],
-                n_classes=n_classes,
-            )
+            model_family = "wagner2023"
+            aggregator = Wagner2023(pretrained_path=pretrained_path)
         elif "niehues2023" in pretrained_path.lower():
             foundation_model = "retccl"
-            aggregator = Niehues2023(
-                input_feature_size=INPUT_FEATURE_SIZE[foundation_model],
-                n_classes=n_classes,
-            )
+            model_family = "niehues2023"
+            aggregator = Niehues2023(pretrained_path=pretrained_path)
+        ## FIXME: Add your own model loading logic here
         else:
             raise ValueError(f"Unknown model name in pretrained path: {pretrained_path}")
 ```
@@ -80,7 +77,7 @@ Please repeat for each staining condition, setting `--features_dir features_outp
 
 e.g. for low intensity condition
 ```bash
-python controlled_staining_simulations/infer_simulated_models.py \
+python -m controlled_staining_simulations.infer_simulated_models \
   --task ##NAME-OF-YOUR-TASK-COLUMN## \
   --csv  ##PATH/TO/YOUR/DATASET/CSV## \
   --features_dir ##PATH/TO/YOUR/FEATURESDIR##/intensity=KRH_GT450_stain=None \
@@ -136,7 +133,7 @@ Eg. for low intensity condition:
 
 `univ2`, `hoptimus1`, `virchow2` -> 224px X 224px at 1 um/px (10x): 
 ```bash
-python extract_features.py \
+python -m controlled_staining_simulations.extract_features \
     --task MSI \
     --csv SURGEN.csv \
     --output_dir ##PATH/TO/YOUR/OUTPUTDIR## \
@@ -154,7 +151,7 @@ python extract_features.py \
 
 CTransPath, RetCCL -> 224px X 224px at 0.875 um/px (11.4x): 
 ```bash
-python extract_features.py \
+python -m controlled_staining_simulations.extract_features \
     --task MSI \
     --csv SURGEN.csv \
     --output_dir ##PATH/TO/YOUR/OUTPUTDIR## \
@@ -194,7 +191,7 @@ Runs inference for all 300 models for one staining condition. Please repeat for 
 
 e.g. for low intensity condition
 ```bash
-python controlled_staining_simulations/infer_simulated_models.py \
+python -m controlled_staining_simulations.infer_simulated_models \
   --csv SURGEN.csv \
   --features_dir features_output/intensity=KRH_GT450_stain=None \
   --sim_settings_csv ###PATH/TO/fixed_simulation_hps_n=300.csv### \
@@ -217,7 +214,7 @@ results/
 Runs inference for a public model on one staining condition. Please repeat for both public models (WAGNER2023, NIEHEUS2023) and each staining condition, setting `--features_dir features_output/intensity=None_stain=None` accordingly.
 
 ```bash
-python controlled_staining_simulations/infer_public_models.py \
+python -m controlled_staining_simulations.infer_public_models \
   --csv SURGEN.csv \
   --features_dir features_output/intensity=None_stain=None \
   --pretrained_model models/WAGNER2023/model.pth \
