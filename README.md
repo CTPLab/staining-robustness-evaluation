@@ -86,6 +86,10 @@ Install core dependencies:
 ```bash
 pip install torch torchvision numpy scikit-image openslide-python opencv-python-headless timm huggingface-hub einops pillow scipy shapely pandas matplotlib seaborn scikit-learn
 ```
+Move to the code directory:
+```bash
+cd /YOUR/PATH/staining-robustness-evaluation
+```
 
 ### 2. Typical Workflows
 
@@ -100,7 +104,7 @@ pip install torch torchvision numpy scikit-image openslide-python opencv-python-
 Configure and run [unmix_wsi_v1.py](stain_vector_concentration_extraction/unmix_wsi_v1.py), check the unmixing logs to verify suitable tiles are selected, if the selected tiles are problematic, please adjust the threshold parameters in [config.py](stain_vector_concentration_extraction/config.py)
 
 ```bash
-python stain_vector_concentration_extraction/unmix_wsi_v1.py
+python -m stain_vector_concentration_extraction.unmix_wsi_v1
 ```
 For detailed steps check: [stain_vector_concentration_extraction](stain_vector_concentration_extraction/)
 
@@ -108,11 +112,11 @@ For detailed steps check: [stain_vector_concentration_extraction](stain_vector_c
 
 First, extract the features (utilizing your selected foundation model encoder) under the simulated staining condition, which is applied for each tile before feature extraction.
 ```bash
-python controlled_staining_simulations/extract_features.py --help
+python -m controlled_staining_simulations.extract_features --help
 ```
 Second, infer your trained aggregator model on the extracted features: 
 ```bash
-python controlled_staining_simulations/infer_public_models.py --help
+python -m controlled_staining_simulations.infer_public_models --help
 ```
 For detailed steps check [controlled_staining_simulations](controlled_staining_simulations/).
 
