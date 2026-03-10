@@ -2,12 +2,12 @@
 
 This repository implements a structured protocol for evaluating the robustness of computational pathology (CPath) models to hematoxylin and eosin (H&E) staining variation, as described in the paper.
 
-<img width="3305" height="1443" alt="Figure 1" src="https://github.com/user-attachments/assets/50ea6f70-20a0-4f9c-abea-74be756bc2a7" />
+<img width="3309" height="1443" alt="Figure 1" src="https://github.com/user-attachments/assets/d2fcc3e4-5145-48c6-b064-6036ced9d316" />
 
 It enables:
 - Definition of realistic reference staining conditions  
 - Extraction of slide-level staining properties  
-- Controlled simulation of staining variation during model inference  
+- Controlled simulation of staining variation during model applyence  
 - Quantification of robustness via performance variability  
 
 The protocol is demonstrated using MSI classification in colorectal cancer, but is designed to be reusable for other tasks and datasets.
@@ -26,7 +26,7 @@ You can reproduce everything or selectively reuse precomputed artifacts:
 | Sample ABMIL train hyperparameters | `controlled_staining_simulations/simulation_settings.ipynb` | `MSI_classification_models/fixed_splits_n=300`, `MSI_classification_models/fixed_simulation_hps_n=300.csv` |
 | ABMIL training (n=300 models) | `controlled_staining_simulations/train_abmil.py` | `MSI_classification_models/trained_models` |
 | Extract features under simulated reference staining conditions | `controlled_staining_simulations/extract_features.py` | Not provided, follow steps in GitHub. |
-| Infer models on extracted features | `controlled_staining_simulations/infer_simulated_models.py`, `controlled_staining_simulations/infer_public_models.py` | `exp_results` |
+| Apply models on extracted features | `controlled_staining_simulations/apply_simulated_models.py`, `controlled_staining_simulations/apply_public_models.py` | `exp_results` |
 | Evaluate results | `controlled_staining_simulations/evaluate_results.ipynb` | See paper for results. |
 
 The layout of this repository mirrors the protocol steps 1-3 (see Figure above).
@@ -43,16 +43,16 @@ Use this if you want to:
 - Extract stain statistics from a new dataset  
 
 ### [controlled_staining_simulations](controlled_staining_simulations/)
-Implements `Step 3: Infer CPath model under simulated reference conditions`, as well as the ABMIL-based training of the MSI classification models.
+Implements `Step 3: Apply CPath model under simulated reference conditions`, as well as the ABMIL-based training of the MSI classification models.
 
 Provides code for:
 - ABMIL-based training of MSI models
 - Feature extraction under simulated staining conditions
-- Model inference of public and self-trained models on features from simulated staining conditions
+- Model applyence of public and self-trained models on features from simulated staining conditions
 - Evaluation notebooks
 
 Use this if you want to:
-- Replicate our experiments (ABMIL-based training, feature extraction and inference)
+- Replicate our experiments (ABMIL-based training, feature extraction and applyence)
 - Run controlled staining simulations on your own models
 
 ### [models](models/)
@@ -108,15 +108,15 @@ python -m stain_vector_concentration_extraction.unmix_wsi_v1
 ```
 For detailed steps check: [stain_vector_concentration_extraction](stain_vector_concentration_extraction/)
 
-3. **Infer CPath models under simulated reference staining conditions**
+3. **Apply CPath models under simulated reference staining conditions**
 
 First, extract the features (utilizing your selected foundation model encoder) under the simulated staining condition, which is applied for each tile before feature extraction.
 ```bash
 python -m controlled_staining_simulations.extract_features --help
 ```
-Second, infer your trained aggregator model on the extracted features: 
+Second, apply your trained aggregator model on the extracted features: 
 ```bash
-python -m controlled_staining_simulations.infer_public_models --help
+python -m controlled_staining_simulations.apply_public_models --help
 ```
 For detailed steps check [controlled_staining_simulations](controlled_staining_simulations/).
 
@@ -132,7 +132,7 @@ controlled_staining_simulations/evaluate_results.ipynb
 
 1. Download pretrained models (see section below) and place checkpoints under `models/`
 2. Run feature extraction
-3. Run inference scripts
+3. Run applyence scripts
 4. Use the evaluation notebook to reproduce AUC and robustness metrics
 
 For detailed steps check [controlled_staining_simulations](controlled_staining_simulations/).
