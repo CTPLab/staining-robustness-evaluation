@@ -7,7 +7,7 @@ This repository implements a structured protocol for evaluating the robustness o
 It enables:
 - Definition of realistic reference staining conditions  
 - Extraction of slide-level staining properties  
-- Controlled simulation of staining variation during model applyence  
+- Controlled simulation of staining variation during model application  
 - Quantification of robustness via performance variability  
 
 The protocol is demonstrated using MSI classification in colorectal cancer, but is designed to be reusable for other tasks and datasets.
@@ -48,11 +48,11 @@ Implements `Step 3: Apply CPath model under simulated reference conditions`, as 
 Provides code for:
 - ABMIL-based training of MSI models
 - Feature extraction under simulated staining conditions
-- Model applyence of public and self-trained models on features from simulated staining conditions
+- Apply public and self-trained models on features from simulated staining conditions
 - Evaluation notebooks
 
 Use this if you want to:
-- Replicate our experiments (ABMIL-based training, feature extraction and applyence)
+- Replicate our experiments (ABMIL-based training, feature extraction and model application)
 - Run controlled staining simulations on your own models
 
 ### [models](models/)
@@ -132,7 +132,7 @@ controlled_staining_simulations/evaluate_results.ipynb
 
 1. Download pretrained models (see section below) and place checkpoints under `models/`
 2. Run feature extraction
-3. Run applyence scripts
+3. Run model application scripts
 4. Use the evaluation notebook to reproduce AUC and robustness metrics
 
 For detailed steps check [controlled_staining_simulations](controlled_staining_simulations/).
