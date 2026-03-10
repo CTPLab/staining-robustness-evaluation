@@ -1,7 +1,7 @@
-# Infer CPath models under simulated reference staining conditions
+# Apply CPath models under simulated reference staining conditions
 
 This subfolder contains scripts to:
-1. **Infer (your) CPath models on your own dataset and selected reference conditions.**
+1. **Apply (your) CPath models on your own dataset and selected reference conditions.**
 2. **Reproduce the experiments from the paper (MSI in CRC, SurGen cohort).**
 
 ---
@@ -10,12 +10,12 @@ This subfolder contains scripts to:
 | Protocol Step | Repository Component |
 |---------------|---------------------|
 | Controlled simulation + feature extraction | `extract_features.py` |
-| Model inference | `infer_simulated_models.py`, `infer_public_models.py` |
+| Model application | `apply_simulated_models.py`, `apply_public_models.py` |
 | Training simulated ABMIL models | `train_abmil.py` |
 
 ---
 
-## Infer CPath models on your own dataset and selected reference conditions.
+## Apply CPath models on your own dataset and selected reference conditions.
 
 This assumes you already selected reference staining conditions and extracted H&E stain vectors and intensities for your own datasets. If this is not the case please check [stain_vector_concentration_extraction](stain_vector_concentration_extraction/) and [README](./README.md).
 
@@ -55,8 +55,8 @@ Repeat this for:
 - All simulated staining conditions
 
 ---
-### 2. Run Inference
-I recommend building on `infer_public_models.py`, which expects features extracted with `extract_features.py` and allows providing a pre-trained model path. 
+### 2. Run custom models on extracted features
+I recommend building on `apply_public_models.py`, which expects features extracted with `extract_features.py` and allows providing a pre-trained model path. 
 
 Please add your custom aggregator architecture in the script:
 ```python
@@ -77,7 +77,7 @@ Please repeat for each staining condition, setting `--features_dir features_outp
 
 e.g. for low intensity condition
 ```bash
-python -m controlled_staining_simulations.infer_simulated_models \
+python -m controlled_staining_simulations.apply_simulated_models \
   --task ##NAME-OF-YOUR-TASK-COLUMN## \
   --csv  ##PATH/TO/YOUR/DATASET/CSV## \
   --features_dir ##PATH/TO/YOUR/FEATURESDIR##/intensity=KRH_GT450_stain=None \
@@ -185,13 +185,13 @@ Repeat this for:
 
 ---
 
-### Step 2A – Inference: Simulated ABMIL Models (n=300)
+### Step 2A – Run simulated ABMIL Models (n=300)
 
-Runs inference for all 300 models for one staining condition. Please repeat for each staining condition, setting `--features_dir features_output/intensity=None_stain=None` accordingly.
+Applies all 300 models for one staining condition. Please repeat for each staining condition, setting `--features_dir features_output/intensity=None_stain=None` accordingly.
 
 e.g. for low intensity condition
 ```bash
-python -m controlled_staining_simulations.infer_simulated_models \
+python -m controlled_staining_simulations.apply_simulated_models \
   --csv SURGEN.csv \
   --features_dir features_output/intensity=KRH_GT450_stain=None \
   --sim_settings_csv ###PATH/TO/fixed_simulation_hps_n=300.csv### \
@@ -210,11 +210,11 @@ results/
 
 ---
 
-### Step 2B – Inference: Public Models
-Runs inference for a public model on one staining condition. Please repeat for both public models (WAGNER2023, NIEHEUS2023) and each staining condition, setting `--features_dir features_output/intensity=None_stain=None` accordingly.
+### Step 2B – Run Public Models
+Runs a public model on one staining condition. Please repeat for both public models (WAGNER2023, NIEHEUS2023) and each staining condition, setting `--features_dir features_output/intensity=None_stain=None` accordingly.
 
 ```bash
-python -m controlled_staining_simulations.infer_public_models \
+python -m controlled_staining_simulations.apply_public_models \
   --csv SURGEN.csv \
   --features_dir features_output/intensity=None_stain=None \
   --pretrained_model models/WAGNER2023/model.pth \
