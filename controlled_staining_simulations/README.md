@@ -55,7 +55,7 @@ Repeat this for:
 - All simulated staining conditions
 
 ---
-### 2. Run custom models on extracted features
+### 2. Apply custom models on extracted features
 I recommend building on `apply_public_models.py`, which expects features extracted with `extract_features.py` and allows providing a pre-trained model path. 
 
 Please add your custom aggregator architecture in the script:
@@ -185,7 +185,7 @@ Repeat this for:
 
 ---
 
-### Step 2A – Run simulated ABMIL Models (n=300)
+### Step 2A – Apply simulated ABMIL Models (n=300)
 
 Applies all 300 models for one staining condition. Please repeat for each staining condition, setting `--features_dir features_output/intensity=None_stain=None` accordingly.
 
@@ -210,7 +210,7 @@ results/
 
 ---
 
-### Step 2B – Run Public Models
+### Step 2B – Apply Public Models
 Runs a public model on one staining condition. Please repeat for both public models (WAGNER2023, NIEHEUS2023) and each staining condition, setting `--features_dir features_output/intensity=None_stain=None` accordingly.
 
 ```bash
