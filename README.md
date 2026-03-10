@@ -2,7 +2,7 @@
 
 This repository implements a structured protocol for evaluating the robustness of computational pathology (CPath) models to hematoxylin and eosin (H&E) staining variation, as described in the paper.
 
-<img width="3309" height="1443" alt="Figure 1" src="https://github.com/user-attachments/assets/d2fcc3e4-5145-48c6-b064-6036ced9d316" />
+<img width="3309" height="1443" alt="Figure 1-git" src="https://github.com/user-attachments/assets/89f92af2-4399-428f-bdd8-fad460d05fb5" />
 
 It enables:
 - Definition of realistic reference staining conditions  
