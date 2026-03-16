@@ -1,6 +1,6 @@
 # A protocol for evaluating robustness to H&E staining variation in computational pathology models
 
-This repository implements a structured protocol for evaluating the robustness of computational pathology (CPath) models to hematoxylin and eosin (H&E) staining variation, as described in the paper.
+This repository implements a structured protocol for evaluating the robustness of computational pathology (CPath) models to hematoxylin and eosin (H&E) staining variation, as described in our paper [Link to Paper](https://arxiv.org/abs/2603.12886).
 
 <img width="3309" height="1443" alt="Figure 1-git" src="https://github.com/user-attachments/assets/89f92af2-4399-428f-bdd8-fad460d05fb5" />
 
@@ -192,9 +192,18 @@ Resources available on Hugging Face:
 ## Citation
 
 If you use this repository, please cite:
-
+[A protocol for evaluating robustness to H&E staining variation in computational pathology models
+](https://arxiv.org/abs/2603.12886)
 ```
-[Full paper citation here]
+@misc{schönpflug2026protocolevaluatingrobustnesshe,
+      title={A protocol for evaluating robustness to H&E staining variation in computational pathology models}, 
+      author={Lydia A. Schönpflug and Nikki van den Berg and Sonali Andani and Nanda Horeweg and Jurriaan Barkey Wolf and Tjalling Bosse and Viktor H. Koelzer and Maxime W. Lafarge},
+      year={2026},
+      eprint={2603.12886},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2603.12886}, 
+}
 ```
 
 ## References
