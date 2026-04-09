@@ -16,10 +16,11 @@
 import os
 import random
 import shutil
+import argparse
 from glob import glob
 from typing import Dict, List, Tuple
 
-import config as _c
+import stain_vector_concentration_extraction.config as _c
 import cv2
 import numpy as np
 import openslide
@@ -93,13 +94,14 @@ def colorfulness_variance_filtered(hsv: np.ndarray) -> float:
     return score
 
 
-def keep_tile(tile: np.ndarray, thresholds: Dict[str, float], tile_name: str = "") -> bool:
+def keep_tile(tile: np.ndarray, thresholds: Dict[str, float], tile_name: str = "", verbose: bool = True) -> bool:
     hsv = rgb2hsv(tile)
     sat, val, h = hsv[..., 1], hsv[..., 2], hsv[..., 0]
     mask = sat > 0.1
     frac_sat = float(np.mean(sat > 0.2))
     if frac_sat < thresholds["frac_sat"]:
-        print(f"Ignore {tile_name}: low saturation ({frac_sat:.2f} < {thresholds['frac_sat']:.2f})")
+        if verbose:
+            print(f"Ignore {tile_name}: low saturation ({frac_sat:.2f} < {thresholds['frac_sat']:.2f})")
         return False
     entropy = float(shannon_entropy(tile))
     colorfulness = colorfulness_variance_filtered(hsv)
@@ -125,24 +127,30 @@ def keep_tile(tile: np.ndarray, thresholds: Dict[str, float], tile_name: str = "
         f"Tile {tile_name}: frac_sat={frac_sat:.2f}, entropy={entropy:.2f}, colorfulness={colorfulness:.5f}, lap_var={lap_var:.2f}, frac_redyellow={frac_redyellow:.2f}, frac_green={frac_green:.2f}"
     )
     if frac_sat < thresholds["frac_sat"]:
-        print(f"Ignore {tile_name}: low saturation ({frac_sat:.2f} < {thresholds['frac_sat']:.2f})")
+        if verbose:
+            print(f"Ignore {tile_name}: low saturation ({frac_sat:.2f} < {thresholds['frac_sat']:.2f})")
         return False
     if entropy < thresholds["entropy"]:
-        print(f"Ignore {tile_name}: low entropy ({entropy:.2f} < {thresholds['entropy']:.2f})")
+        if verbose:
+            print(f"Ignore {tile_name}: low entropy ({entropy:.2f} < {thresholds['entropy']:.2f})")
         return False
     if colorfulness < thresholds["colorfulness"]:
-        print(f"Ignore {tile_name}: low colorfulness ({colorfulness:.5f} < {thresholds['colorfulness']:.5f})")
+        if verbose:
+            print(f"Ignore {tile_name}: low colorfulness ({colorfulness:.5f} < {thresholds['colorfulness']:.5f})")
         return False
     if lap_var < thresholds["lap_var"]:
-        print(f"Ignore {tile_name}: blurry tile ({lap_var:.2f} < {thresholds['lap_var']:.2f})")
+        if verbose:
+            print(f"Ignore {tile_name}: blurry tile ({lap_var:.2f} < {thresholds['lap_var']:.2f})")
         return False
     if frac_redyellow > thresholds["frac_redyellow"]:
-        print(
-            f"Ignore {tile_name}: dominated by red/yellow ({frac_redyellow:.2f} > {thresholds['frac_redyellow']:.2f})"
-        )
+        if verbose:
+            print(
+                f"Ignore {tile_name}: dominated by red/yellow ({frac_redyellow:.2f} > {thresholds['frac_redyellow']:.2f})"
+            )
         return False
     if frac_green > thresholds["frac_green"]:
-        print(f"Ignore {tile_name}: dominated by green ({frac_green:.2f} > {thresholds['frac_green']:.2f})")
+        if verbose:
+            print(f"Ignore {tile_name}: dominated by green ({frac_green:.2f} > {thresholds['frac_green']:.2f})")
         return False
     else:
         return True
@@ -154,6 +162,7 @@ def get_random_valid_tiles(
     out_px: int,
     num_tiles: int,
     thresholds: Dict[str, float],
+    verbose: bool = True,
 ) -> List[Tuple[np.ndarray, Tuple[int, int, int, int]]]:
     """Return exactly num_tiles random valid tiles and their bounding box coordinates."""
     valid_tiles, indices = [], list(range(len(filtered_tiles)))
@@ -163,49 +172,105 @@ def get_random_valid_tiles(
             break
         minx, miny, maxx, maxy = filtered_tiles[idx].bounds
         tile = extract_tile_from_slide(wsi, filtered_tiles[idx], out_px, use_lower_level=True)
-        if keep_tile(tile, thresholds, f"minx={minx}, miny={miny}, maxx={maxx}, maxy={maxy}"):
+        if keep_tile(tile, thresholds, f"minx={minx}, miny={miny}, maxx={maxx}, maxy={maxy}", verbose=verbose):
             print(f"{len(valid_tiles)+1}/{num_tiles} valid tiles found")
             valid_tiles.append((tile, (int(minx), int(miny), int(maxx), int(maxy))))
     return valid_tiles
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Extract H&E stain vectors and intensities from WSIs."
+    )
+    parser.add_argument(
+        "--num-tiles",
+        type=int,
+        default=10,
+        help="Number of valid tiles to extract per WSI.",
+    )
+    parser.add_argument(
+        "--redo",
+        action="store_true",
+        help="Force re-extraction of tiles and overwrite existing outputs.",
+    )
+    parser.add_argument(
+        "--tissue-masks-dir",
+        type=str,
+        default=None,
+        help="Path to precomputed tissue masks; if omitted, masks are generated.",
+    )
+    parser.add_argument(
+        "--csv",
+        type=str,
+        default="SURGEN.csv",
+        help="Path to CSV file containing 'slide_id' and 'slide_path'. Current working dir is project root.",
+    )
+    parser.add_argument(
+        "--output-data-dir",
+        type=str,
+        default="./stain_vectors",
+        help="Directory to store extracted stain vectors and intensities.",
+    )
+    parser.add_argument(
+        "--output-report-dir",
+        type=str,
+        default="./logs",
+        help="Directory to store analysis report images for each tile.",
+    )
+    parser.add_argument(
+        "--tile-size",
+        type=int,
+        default=224,
+        help="Tile size in pixels.",
+    )
+    parser.add_argument(
+        "--out-px",
+        type=int,
+        default=448,
+        help="Output tile size in pixels.",
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Print detailed quality metrics for each tile.",
+    )
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
-    ### CONFIGURATION ###
-    num_tiles = 10  # <--- Number of valid tiles to extract per WSI
-    redo: bool = False  # <--- Force re-extraction of tiles
-    tissue_masks_dir = None  # <--- Path to precomputed tissue masks, script generates masks if not provided
-    csv = "../SURGEN.csv"  # <--- Path to SurGen CSV file
-    output_data_dir = f"./stain_vectors"  # <--- Path to store extracted stain vectors and intensities
-    output_report_dir = f"./logs"  # <--- Path to store analysis report images for each tile
-    tile_size = 224  # um
-    out_px = 448  # px
-    ######################
+    args = parse_args()
+
+    print(args.verbose)
 
     random.seed(42)
-    os.makedirs(output_data_dir, exist_ok=True)
-    os.makedirs(output_report_dir, exist_ok=True)
-    df = pd.read_csv(csv)
-    df = df[(~df["qc_excluded"]) & (~df["MSI"].isna())]
-    df["cohort"] = (
-        df["slide_id"].str.extract(r"(SR386|SR1482)", expand=False)
-        if "SURGEN" in csv
-        else df["patient_id"].str.split("-").str[1]
-    )
+    os.makedirs(args.output_data_dir, exist_ok=True)
+    os.makedirs(args.output_report_dir, exist_ok=True)
+    df = pd.read_csv(args.csv)
+
+    if "surgen" in args.csv.lower():
+        df = df[(~df["qc_excluded"]) & (~df["MSI"].isna())]
+        df["cohort"] = (
+            df["slide_id"].str.extract(r"(SR386|SR1482)", expand=False)
+            if "SURGEN" in args.csv
+            else df["patient_id"].str.split("-").str[1]
+        )
+
+    assert "slide_id" in df.columns and "slide_path" in df.columns, "CSV must contain 'slide_id' and 'slide_path' columns"
 
     thresholds = _c.thresholds
-    with tqdm(enumerate(zip(df["slide_id"], df["slide_path"], df["cohort"])), total=len(df)) as pbar:
-        for idx, (slide_id, slide_path, cohort) in pbar:
-            if os.path.exists(f"{output_data_dir}/{slide_id}.npz"):
-                if not redo:
-                    num_tiles_slide = len(glob(f"{output_data_dir}/{slide_id}/*.npz"))
+    with tqdm(enumerate(zip(df["slide_id"], df["slide_path"])), total=len(df)) as pbar:
+        for idx, (slide_id, slide_path) in pbar:
+            if os.path.exists(f"{args.output_data_dir}/{slide_id}.npz"):
+                if not args.redo:
+                    num_tiles_slide = len(glob(f"{args.output_data_dir}/{slide_id}/*.npz"))
                     if num_tiles_slide == 10:
                         continue
                     else:
                         print(f"Only {num_tiles_slide}/10 tiles found, repeat: {slide_id}")
 
-                shutil.rmtree(f"{output_data_dir}/{slide_id}")
-                shutil.rmtree(f"{output_report_dir}/{slide_id}")
-                os.remove(f"{output_data_dir}/{slide_id}.npz")
+                shutil.rmtree(f"{args.output_data_dir}/{slide_id}")
+                shutil.rmtree(f"{args.output_report_dir}/{slide_id}")
+                os.remove(f"{args.output_data_dir}/{slide_id}.npz")
 
             pbar.set_postfix(slide_id=slide_id)
 
@@ -217,9 +282,10 @@ if __name__ == "__main__":
                     f"Could not find the {openslide.PROPERTY_NAME_MPP_X} in the slide {slide_id}, all keys: {wsi.properties.keys()}"
                 )
 
-            if tissue_masks_dir is None:
+            if args.tissue_masks_dir is None:
+                # Use "otsu" or "fcnn" as tissue detection method, depending on availability of pretrained model
                 tissue_detector = TissueDetector(
-                    tissue_method="fcnn",
+                    tissue_method="otsu",
                     device=torch.device("cuda" if torch.cuda.is_available() else "cpu"),
                 )
                 mask = tissue_detector.detect_tissue(wsi, slide_id)
@@ -227,11 +293,13 @@ if __name__ == "__main__":
                 PIL.Image.fromarray((mask * 255).astype(np.uint8)).save(f"./tissue_masks/{slide_id}.png")
                 print(f"Saved tissue mask to ./tissue_masks/{slide_id}.png")
             else:
-                mask = np.array(Image.open(f"{tissue_masks_dir}/{slide_id}.png"))
-            filtered_tiles = create_tissue_tiles(wsi, mask, tile_size, slide_id)
+                mask = np.array(Image.open(f"{args.tissue_masks_dir}/{slide_id}.png"))
+            filtered_tiles = create_tissue_tiles(wsi, mask, args.tile_size, slide_id)
             print("mask.shape", mask.shape)
             export_dicts = []
-            tiles_with_coords = get_random_valid_tiles(wsi, filtered_tiles, out_px, num_tiles, thresholds=thresholds)
+            tiles_with_coords = get_random_valid_tiles(
+                wsi, filtered_tiles, args.out_px, args.num_tiles, thresholds=thresholds, verbose=args.verbose
+            )
             wsi.close()
 
             if len(tiles_with_coords) == 0:
@@ -271,29 +339,29 @@ if __name__ == "__main__":
                 H, E = stainMatrix[:, 0], stainMatrix[:, 1]
                 h_sph, e_sph = to_spherical(H), to_spherical(E)
                 if h_sph[1] > e_sph[1] and h_sph[0] > e_sph[0]:
-                    png_fp = f"{output_report_dir}/{slide_id}/{slide_id}_xmin={x_min}_ymin={y_min}_xmax={x_max}_ymax={y_max}_analysisReport_ignored.png"
-                    npz_fp = f"{output_data_dir}/{slide_id}/{slide_id}_xmin={x_min}_ymin={y_min}_xmax={x_max}_ymax={y_max}_ignored.npz"
+                    png_fp = f"{args.output_report_dir}/{slide_id}/{slide_id}_xmin={x_min}_ymin={y_min}_xmax={x_max}_ymax={y_max}_analysisReport_ignored.png"
+                    npz_fp = f"{args.output_data_dir}/{slide_id}/{slide_id}_xmin={x_min}_ymin={y_min}_xmax={x_max}_ymax={y_max}_ignored.npz"
                     print(
                         f">> Hematoxylin and Eosin appear swapped, ignore tile for mean calculation, (theta_H, phi_H)={h_sph}, (theta_E, phi_E)={e_sph}."
                     )
                 else:
-                    png_fp = f"{output_report_dir}/{slide_id}/{slide_id}_xmin={x_min}_ymin={y_min}_xmax={x_max}_ymax={y_max}_analysisReport.png"
-                    npz_fp = f"{output_data_dir}/{slide_id}/{slide_id}_xmin={x_min}_ymin={y_min}_xmax={x_max}_ymax={y_max}.npz"
+                    png_fp = f"{args.output_report_dir}/{slide_id}/{slide_id}_xmin={x_min}_ymin={y_min}_xmax={x_max}_ymax={y_max}_analysisReport.png"
+                    npz_fp = f"{args.output_data_dir}/{slide_id}/{slide_id}_xmin={x_min}_ymin={y_min}_xmax={x_max}_ymax={y_max}.npz"
                     print(f">> Compute intensity, (theta_H, phi_H)={h_sph}, (theta_E, phi_E)={e_sph}.")
                     c_stat = get_intensity(image, stainMatrix)
                     print(f">> 95th percentile intensity values: H={c_stat['H_95th']}, E={c_stat['E_95th']}")
                     export_dict = {**export_dict, **c_stat}
                     export_dicts.append(export_dict)
 
-                if not os.path.isdir(f"{output_report_dir}/{slide_id}"):
-                    os.makedirs(f"{output_report_dir}/{slide_id}", exist_ok=True)
+                if not os.path.isdir(f"{args.output_report_dir}/{slide_id}"):
+                    os.makedirs(f"{args.output_report_dir}/{slide_id}", exist_ok=True)
                 image_out = _ub.concat_horizontal(report_image_list)
                 image_out = image_out.astype(np.uint8)
                 PIL.Image.fromarray(image_out).save(png_fp)
                 print(f">> Analysis report exported at: {png_fp}")
 
-                if not os.path.isdir(f"{output_data_dir}/{slide_id}"):
-                    os.makedirs(f"{output_data_dir}/{slide_id}", exist_ok=True)
+                if not os.path.isdir(f"{args.output_data_dir}/{slide_id}"):
+                    os.makedirs(f"{args.output_data_dir}/{slide_id}", exist_ok=True)
                 np.savez(npz_fp, **export_dict)
                 print(f">> Stain data exported at: {npz_fp}")
 
@@ -303,8 +371,8 @@ if __name__ == "__main__":
                 arr = np.array(values, dtype=np.float32)
                 average_export_dict[key] = np.median(arr, axis=0)
 
-            if not os.path.isdir(output_data_dir):
-                os.makedirs(output_data_dir, exist_ok=True)
-            path_target = f"{output_data_dir}/{slide_id}.npz"
+            if not os.path.isdir(args.output_data_dir):
+                os.makedirs(args.output_data_dir, exist_ok=True)
+            path_target = f"{args.output_data_dir}/{slide_id}.npz"
             np.savez(path_target, **average_export_dict)
             print(f">> Stain data exported at: {path_target}")

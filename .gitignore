@@ -1,1 +1,6 @@
 **/__pycache__/**.pyc
+
+# Ignore generated files and directories
+/tissue_masks
+/stain_vectors
+/logs

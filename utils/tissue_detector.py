@@ -89,6 +89,10 @@ class TissueDetector:
     """Performs tissue detection."""
 
     def __init__(self, tissue_method: str, device: torch.device = None):
+        """
+        tissue_method: str, either "otsu" or "fcnn"
+        device: torch.device, only relevant if tissue_method is "fcnn"
+        """
         self.tissue_method = tissue_method
         self.device = device
         if self.tissue_method == "fcnn":
