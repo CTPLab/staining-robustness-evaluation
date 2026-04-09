@@ -84,7 +84,7 @@ Used for dataset splits and evaluation in the manuscript.
 Install core dependencies:
 
 ```bash
-pip install torch torchvision numpy scikit-image openslide-python opencv-python-headless timm huggingface-hub einops pillow scipy shapely pandas matplotlib seaborn scikit-learn
+pip install -r requirements.txt
 ```
 Move to the code directory:
 ```bash
